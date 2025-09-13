@@ -1,18 +1,22 @@
-import { UserRoleEnum } from '@prisma/client';
+import { GenderEnum, User, UserRoleEnum } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import config from '../../config';
 import { prisma } from '../utils/prisma';
 
 const superAdminData = {
-  firstName: 'Super',
-  lastName: 'Admin',
+  fullName: 'Super Admin',
   email: 'admin@gmail.com',
   password: '123456',
   phoneNumber: '01821558090',
   role: UserRoleEnum.SUPERADMIN,
-  isAgreeWithTerms: true,
   isEmailVerified: true,
-};
+  address: 'Dhaka 1203',
+  introduction: 'Im super admin',
+  isReferredBySheikhSalmam: true,
+  majorOrProfession: 'Teacher',
+  haveTakenCoursesBefore: false,
+  gender: GenderEnum.MALE,
+} as User;
 
 const seedSuperAdmin = async () => {
   try {

@@ -1,38 +1,45 @@
 model User {
   id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  firstName   String
-  lastName    String
+  fullName    String
   email       String       @unique
   phoneNumber String       @unique
   password    String
   role        UserRoleEnum @default(USER)
 
+  address                  String
+  introduction             String
+  isReferredBySheikhSalmam Boolean
+  referredBy               String?
+  gender                   GenderEnum
+
+  // education
+  majorOrProfession      String
+  haveTakenCoursesBefore Boolean
+  howLongInCourse        String?
+
   status UserStatus @default(ACTIVE)
 
-  bio      String?
-  location String?
+  bio String?
 
-  isAgreeWithTerms Boolean
-  profile          String?
-  otp              String?
-  otpExpiry        DateTime?
+  profile   String?
+  otp       String?
+  otpExpiry DateTime?
 
   isEmailVerified               Boolean   @default(false)
   emailVerificationToken        String?
   emailVerificationTokenExpires DateTime?
 
-  sentMessages     Message[]          @relation("SentMessages")
-  receivedMessages Message[]          @relation("ReceivedMessages")
-  payments         Payment[]
-  notifications    NotificationUser[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
 
 enum UserRoleEnum {
   USER
+  INSTRUCTOR
   SUPERADMIN
 }
 

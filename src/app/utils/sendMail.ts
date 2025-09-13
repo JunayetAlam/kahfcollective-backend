@@ -41,13 +41,14 @@ export const sendEmail = async (to: string, html: string, subject: string) => {
       from: 'muhammadjunayetmaruf@gmail.com',
       to,
       subject,
-      text: '', 
+      text: '',
       html,
     });
-    console.log(result);
-  } catch (error) { }
+    console.log('Req email sent to: ', to);
+  } catch (error) {
+    console.log(error);
+  }
 };
-
 
 export const sendOtpViaMail = async (to: string, OTP: string) => {
   const html = `<!DOCTYPE html>
@@ -78,10 +79,8 @@ export const sendOtpViaMail = async (to: string, OTP: string) => {
     </div>
 </body>
 </html>`;
-  await sendEmail(to, html, 'Quirpleb: Verification OTP')
-
-}
-
+  await sendEmail(to, html, 'Quirpleb: Verification OTP');
+};
 
 export const sendLinkViaMail = async (to: string, link: string) => {
   const html = `<!DOCTYPE html> 
@@ -163,5 +162,5 @@ export const sendLinkViaMail = async (to: string, link: string) => {
   </style>
 </body> 
 </html>`;
-  await sendEmail(to, html, 'Overlanding Outpost: Verify Your Account');
+  return await sendEmail(to, html, 'Overlanding Outpost: Verify Your Account');
 };

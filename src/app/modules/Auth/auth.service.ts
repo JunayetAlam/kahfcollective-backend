@@ -1,21 +1,23 @@
+import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { Response } from 'express';
 import httpStatus from 'http-status';
-import { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
+import jwt, { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
 import { generateToken } from '../../utils/generateToken';
 import { insecurePrisma, prisma } from '../../utils/prisma';
-import { User } from '@prisma/client';
-import { Response } from 'express';
-import jwt from 'jsonwebtoken';
-import { verifyToken } from '../../utils/verifyToken';
-import sendResponse from '../../utils/sendResponse';
 import { sendLinkViaMail } from '../../utils/sendMail';
+import sendResponse from '../../utils/sendResponse';
+import { verifyToken } from '../../utils/verifyToken';
 
-const loginUserFromDB = async (res: Response, payload: {
-  email: string;
-  password: string;
-}) => {
+const loginUserFromDB = async (
+  res: Response,
+  payload: {
+    email: string;
+    password: string;
+  },
+) => {
   const userData = await insecurePrisma.user.findUniqueOrThrow({
     where: {
       email: payload.email,
@@ -35,7 +37,7 @@ const loginUserFromDB = async (res: Response, payload: {
     const verificationToken = generateToken(
       {
         id: 'email-verification-token',
-        name: userData.firstName + ' ' + userData.lastName,
+        name: userData.fullName,
         email: userData.email,
         role: userData.role,
       },
@@ -49,7 +51,9 @@ const loginUserFromDB = async (res: Response, payload: {
       where: { email: userData.email },
       data: {
         emailVerificationToken: verificationToken,
-        emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        emailVerificationTokenExpires: new Date(
+          Date.now() + 24 * 60 * 60 * 1000,
+        ), // 24 hours
       },
     });
 
@@ -61,13 +65,16 @@ const loginUserFromDB = async (res: Response, payload: {
         data: '',
       });
     } catch {
-      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to send verification email',
+      );
     }
   } else {
     const accessToken = await generateToken(
       {
         id: userData.id,
-        name: userData.firstName + ' ' + userData.lastName,
+        name: userData.fullName,
         email: userData.email,
         role: userData.role,
       },
@@ -77,7 +84,7 @@ const loginUserFromDB = async (res: Response, payload: {
 
     return {
       id: userData.id,
-      name: userData.firstName + ' ' + userData.lastName,
+      name: userData.fullName,
       email: userData.email,
       role: userData.role,
       accessToken: accessToken,
@@ -90,29 +97,32 @@ const registerUserIntoDB = async (payload: User) => {
 
   const isUserExistWithTheGmail = await prisma.user.findFirst({
     where: {
-      OR: [
-        { email: payload.email },
-        { phoneNumber: payload.phoneNumber }
-      ]
+      OR: [{ email: payload.email }, { phoneNumber: payload.phoneNumber }],
     },
     select: {
       id: true,
       email: true,
-      phoneNumber: true
+      phoneNumber: true,
     },
   });
 
   if (isUserExistWithTheGmail?.email === payload.email) {
-    throw new AppError(httpStatus.CONFLICT, 'User already exists with the email');
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'User already exists with the email',
+    );
   }
   if (isUserExistWithTheGmail?.phoneNumber === payload.phoneNumber) {
-    throw new AppError(httpStatus.CONFLICT, 'User already exists with the Phone Number');
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'User already exists with the Phone Number',
+    );
   }
 
   const verificationToken = generateToken(
     {
       id: 'email-verification-token',
-      name: payload.firstName + ' ' + payload.lastName,
+      name: payload.fullName,
       email: payload.email,
       role: payload.role,
     },
@@ -127,7 +137,7 @@ const registerUserIntoDB = async (payload: User) => {
     emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     const newUser = await tx.user.create({
       data: userData,
     });
@@ -137,14 +147,20 @@ const registerUserIntoDB = async (payload: User) => {
     try {
       sendLinkViaMail(newUser.email, verificationLink);
     } catch {
-      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to send verification email',
+      );
     }
   });
 };
 
 const verifyEmail = async (payload: { token: string }) => {
   if (!payload.token) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Verification token is required');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Verification token is required',
+    );
   }
 
   const verifyUserToken = verifyToken(
@@ -170,12 +186,21 @@ const verifyEmail = async (payload: { token: string }) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Email is already verified');
   }
 
-  if (!user.emailVerificationToken || user.emailVerificationToken !== payload.token) {
+  if (
+    !user.emailVerificationToken ||
+    user.emailVerificationToken !== payload.token
+  ) {
     throw new AppError(httpStatus.FORBIDDEN, 'Invalid verification token');
   }
 
-  if (!user.emailVerificationTokenExpires || new Date() > user.emailVerificationTokenExpires) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Verification token has expired');
+  if (
+    !user.emailVerificationTokenExpires ||
+    new Date() > user.emailVerificationTokenExpires
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Verification token has expired',
+    );
   }
 
   await prisma.user.update({
@@ -192,7 +217,7 @@ const verifyEmail = async (payload: { token: string }) => {
   const accessToken = await generateToken(
     {
       id: user.id,
-      name: user.firstName + ' ' + user.lastName,
+      name: user.fullName,
       email: user.email,
       role: user.role,
     },
@@ -202,7 +227,7 @@ const verifyEmail = async (payload: { token: string }) => {
 
   return {
     id: user.id,
-    name: user.firstName + ' ' + user.lastName,
+    name: user.fullName,
     email: user.email,
     role: user.role,
     accessToken: accessToken,
@@ -258,7 +283,7 @@ const resendUserVerificationEmail = async (email: string) => {
   const verificationToken = generateToken(
     {
       id: 'email-verification-token',
-      name: user.firstName + ' ' + user.lastName,
+      name: user.fullName,
       email: user.email,
       role: user.role,
     },
@@ -279,36 +304,39 @@ const resendUserVerificationEmail = async (email: string) => {
   try {
     await sendLinkViaMail(email, verificationLink);
   } catch {
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to send verification email',
+    );
   }
 
-  return { message: 'Verification link sent successfully. Please check your inbox.' };
+  return {
+    message: 'Verification link sent successfully. Please check your inbox.',
+  };
 };
 
 const forgetPassword = async (email: string) => {
   const userData = await prisma.user.findUniqueOrThrow({
     where: {
-      email
+      email,
     },
     select: {
       status: true,
       id: true,
-      firstName: true,
-      lastName: true,
+      fullName: true,
       role: true,
-      emailVerificationTokenExpires: true
-    }
+      emailVerificationTokenExpires: true,
+    },
   });
 
   if (userData.status === 'BLOCKED') {
     throw new AppError(httpStatus.BAD_REQUEST, 'User account is blocked');
   }
 
-
   const resetToken = generateToken(
     {
       id: 'password-reset-token',
-      name: userData.firstName + ' ' + userData.lastName,
+      name: userData.fullName,
       email: email,
       role: userData.role,
     },
@@ -319,13 +347,13 @@ const forgetPassword = async (email: string) => {
   const resetLink = `${config.base_url_client}/auth/reset-password?token=${resetToken}`;
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       await tx.user.update({
         where: { email },
         data: {
           emailVerificationToken: resetToken,
           emailVerificationTokenExpires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-        }
+        },
       });
 
       try {
@@ -339,29 +367,40 @@ const forgetPassword = async (email: string) => {
             emailVerificationTokenExpires: null,
           },
         });
-        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send password reset email');
+        throw new AppError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          'Failed to send password reset email',
+        );
       }
     });
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to process password reset request');
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to process password reset request',
+    );
   }
 
-  return { message: 'Password reset link sent successfully. Please check your inbox.' };
+  return {
+    message: 'Password reset link sent successfully. Please check your inbox.',
+  };
 };
 
 const resetPassword = async (payload: {
   newPassword: string;
-  token: string
+  token: string;
 }) => {
-  const token = payload.token
+  const token = payload.token;
   if (!token) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Reset token is required');
   }
 
-  const decoded = jwt.verify(token, config.jwt.access_secret as string) as JwtPayload;
+  const decoded = jwt.verify(
+    token,
+    config.jwt.access_secret as string,
+  ) as JwtPayload;
 
   if (decoded.id !== 'password-reset-token') {
     throw new AppError(httpStatus.FORBIDDEN, 'Invalid reset token');
@@ -377,11 +416,17 @@ const resetPassword = async (payload: {
     throw new AppError(httpStatus.FORBIDDEN, 'User account is blocked');
   }
 
-  if (!userData.emailVerificationToken || userData.emailVerificationToken !== token) {
+  if (
+    !userData.emailVerificationToken ||
+    userData.emailVerificationToken !== token
+  ) {
     throw new AppError(httpStatus.FORBIDDEN, 'Invalid or expired reset token');
   }
 
-  if (!userData.emailVerificationTokenExpires || new Date() > userData.emailVerificationTokenExpires) {
+  if (
+    !userData.emailVerificationTokenExpires ||
+    new Date() > userData.emailVerificationTokenExpires
+  ) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Reset token has expired');
   }
 
@@ -389,13 +434,13 @@ const resetPassword = async (payload: {
 
   await prisma.user.update({
     where: {
-      email: decoded.email
+      email: decoded.email,
     },
     data: {
       password: newHashedPassword,
       emailVerificationToken: null,
       emailVerificationTokenExpires: null,
-    }
+    },
   });
 
   return { message: 'Password reset successfully!' };
