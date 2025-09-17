@@ -11,8 +11,7 @@ export const verifyOtp = async (payload: { email: string; otp: string }) => {
             otp: true,
             otpExpiry: true,
             id: true,
-            firstName: true,
-            lastName: true,
+            fullName: true,
             email: true,
             role: true
         }

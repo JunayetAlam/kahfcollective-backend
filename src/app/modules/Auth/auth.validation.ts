@@ -21,34 +21,19 @@ const loginUser = z.object({
 const registerUser = z.object({
   body: z
     .object({
-      fullName: z.string({
-        required_error: 'Full Name is required!',
-      }),
-      email: z
-        .string({
-          required_error: 'Email is required!',
-        })
-        .email({
-          message: 'Invalid email format!',
-        }),
-      phoneNumber: z.string({ required_error: 'Phone Number is required' }),
-      // isAgreeWithTerms: z.boolean().refine(val => val === true, {
-      //   message: 'You must agree to the terms',
-      // }),
-      password: z
-        .string({
-          required_error: 'Password is required!',
-        })
-        .min(6)
-        .max(16),
-
+      fullName: z.string(),
+      email: z.string().email(),
+      phoneNumber: z.string(),
+      password: z.string().min(6).max(16),
       address: z.string().min(1),
       introduction: z.string().min(1),
       isReferredBySheikhSalmam: z.boolean(),
       referredBy: z.string().optional(),
       majorOrProfession: z.string().min(1),
       haveTakenCoursesBefore: z.boolean(),
-      howLongInCourse: z.string().min(1).optional(),
+      coursesName: z.string().optional(),
+      howLongInCourse: z.string().optional(),
+      isTakeCourseWithSheikh: z.boolean(),
       gender: z.nativeEnum(GenderEnum),
     })
     .strict(),

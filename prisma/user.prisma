@@ -15,6 +15,8 @@ model User {
   // education
   majorOrProfession      String
   haveTakenCoursesBefore Boolean
+  isTakeCourseWithSheikh Boolean
+  coursesName            String?
   howLongInCourse        String?
 
   status UserStatus @default(ACTIVE)

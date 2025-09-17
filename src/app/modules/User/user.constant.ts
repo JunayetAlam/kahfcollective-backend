@@ -1,7 +1,6 @@
 export const userSelect = {
   id: true,
-  firstName: true,
-  lastName: true,
+  fullName: true,
   email: true,
   role: true,
   status: true,

@@ -23,13 +23,12 @@ const getAllPayments = async (query: Record<string, any>) => {
             user: {
                 select: {
                     profile: true,
-                    firstName: true,
-                    lastName: true,
+                    fullName: true,
                     email: true
                 }
             },
-            
-          
+
+
         })
         .exclude()
         .paginate()
@@ -55,12 +54,11 @@ const singleTransactionHistory = async (query: { id: string, userId?: string }) 
             user: {
                 select: {
                     profile: true,
-                    firstName: true,
-                    lastName: true,
+                    fullName: true,
                     email: true
                 }
             },
-           
+
         }
     });
     if (!result) {
@@ -86,12 +84,11 @@ const singleTransactionHistoryBySessionId = async (query: { stripeSessionId: str
             user: {
                 select: {
                     profile: true,
-                    firstName: true,
-                    lastName: true,
+                    fullName: true,
                     email: true
                 }
             },
-          
+
         }
     });
     if (!result) {

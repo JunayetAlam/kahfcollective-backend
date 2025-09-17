@@ -13,7 +13,7 @@ interface UserWithOptionalPassword extends Omit<User, 'password'> {
 const getAllUsersFromDB = async (query: any) => {
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
   const result = await usersQuery
-    .search(['firstName', 'lastName', 'email'])
+    .search(['fullName', 'email'])
     .filter()
     .sort()
     .fields()
@@ -39,8 +39,7 @@ const getUserDetailsFromDB = async (id: string) => {
     where: { id },
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
+      fullName: true,
       email: true,
       role: true,
       createdAt: true,

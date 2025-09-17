@@ -16,7 +16,8 @@ const superAdminData = {
   majorOrProfession: 'Teacher',
   haveTakenCoursesBefore: false,
   gender: GenderEnum.MALE,
-} as User;
+  isTakeCourseWithSheikh: false
+};
 
 const seedSuperAdmin = async () => {
   try {
