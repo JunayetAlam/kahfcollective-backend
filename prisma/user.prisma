@@ -30,6 +30,7 @@ model User {
   emailVerificationTokenExpires DateTime?
 
   payments Payment[]
+  Content  Content[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,8 +1,9 @@
 import express from 'express';
-import { UserRouters } from '../modules/User/user.routes';
+import { AuthRouters } from '../modules/Auth/auth.routes';
+import { ContentRouters } from '../modules/Content/Content.route';
 import { MessageRouters } from '../modules/Messages/message.route';
 import { NotificationsRouters } from '../modules/Notification/notification.route';
-import { AuthRouters } from '../modules/Auth/auth.routes';
+import { UserRouters } from '../modules/User/user.routes';
 const router = express.Router();
 
 const moduleRoutes = [
@@ -21,6 +22,10 @@ const moduleRoutes = [
   {
     path: '/notifications',
     route: NotificationsRouters,
+  },
+  {
+    path: '/contents',
+    route: ContentRouters,
   },
 ];
 

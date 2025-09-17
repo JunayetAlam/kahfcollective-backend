@@ -4,8 +4,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import path from 'path';
 import config from '../../config';
-
 
 const accessKey = config.do_space.access_key;
 const bucket = config.do_space.bucket;
@@ -25,34 +25,39 @@ const s3Client = new S3Client({
 });
 
 export const uploadToDigitalOceanAWS = async (
- file: Express.Multer.File,
+  file: Express.Multer.File,
 ): Promise<UploadResponse> => {
-  
   try {
-    // Ensure the file exists before uploading
-    // await fs.promises.access(file.path, fs.constants.F_OK);
+    console.log(file);
 
-    // const fileStream: Readable = fs.createReadStream(file.path);
+    if (!file || !file.originalname) {
+      throw new Error('No file provided or missing originalname');
+    }
 
-    // Prepare the upload command
+    // Generate unique filename
+    const filename =
+      Date.now() +
+      '-' +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+
+    // Prepare upload command
     const command = new PutObjectCommand({
-      Bucket: `${bucket}`,
-      Key: `${file.originalname}`,
-      Body: file.buffer,
+      Bucket: bucket,
+      Key: filename,
+      Body: file.buffer, // memoryStorage buffer
       ACL: 'public-read',
       ContentType: file.mimetype,
     });
 
-    // Execute the upload
+    // Upload to DigitalOcean
     await s3Client.send(command);
 
-    // Construct the direct URL to the uploaded file
-    const Location = `${endpoints}/${bucket}/${file.originalname}`;
-
+    // Construct public URL
+    const Location = `${endpoints}/${bucket}/${filename}`;
     return { Location };
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Error uploading file`, error);
+    console.error('Error uploading file:', error);
     throw error;
   }
 };

@@ -1,0 +1,18 @@
+model Content {
+    id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+    contentType         ContentTypeEnum
+    title               String
+    contentOrDescriptor String
+    tier                TiersLevelEnum
+    fileLink            String?
+    coverImage          String?
+
+    authorId String @db.ObjectId
+    author   User   @relation(fields: [authorId], references: [id])
+
+    createdAt DateTime @default(now())
+    // authorOrSpeaker     String
+    updatedAt DateTime @updatedAt
+
+    @@map("contents")
+}

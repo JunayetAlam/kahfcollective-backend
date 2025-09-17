@@ -3,3 +3,19 @@ enum GenderEnum {
     FEMALE
     RATHERNOTSAY
 }
+
+enum ContentTypeEnum {
+    ARTICLE
+    SERMONS
+}
+
+enum TiersLevelEnum {
+    AWAKEN
+    ASCEND
+    ACTUALIZE
+}
+
+enum CourseStatus {
+    ACTIVE
+    HIDDEN
+}
