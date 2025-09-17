@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { userRole, userStatus } from "../../constant";
+import { UserRoleEnum } from "@prisma/client";
 
 const updateUser = z.object({
     body: z.object({
@@ -13,7 +14,7 @@ const updateUser = z.object({
 
 const updateUserRoleSchema = z.object({
     body: z.object({
-        role: z.enum(userRole)
+        role: z.nativeEnum(UserRoleEnum)
     })
 })
 const updateUserStatus = z.object({
