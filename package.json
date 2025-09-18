@@ -13,6 +13,7 @@
     "pg": "npx prisma generate",
     "generate-module": "ts-node generate-module.ts",
     "build": "tsc && npx prisma generate",
+    "cm": "ts-node create-module.ts",
     "postinstall": "prisma generate",
     "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
     "lint:fix": "eslint . --fix",

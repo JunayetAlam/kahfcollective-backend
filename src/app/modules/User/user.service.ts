@@ -116,6 +116,19 @@ const updateProfileStatus = async (id: string, status: UserStatus) => {
   return result
 }
 
+const isUserExist = async (id: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true
+    }
+  });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
+  }
+  return user
+}
+
 
 
 export const UserServices = {
@@ -125,5 +138,6 @@ export const UserServices = {
   updateMyProfileIntoDB,
   updateUserRoleStatusIntoDB,
   updateProfileStatus,
-  updateProfileImg
+  updateProfileImg,
+  isUserExist
 };

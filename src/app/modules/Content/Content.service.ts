@@ -8,6 +8,8 @@ import {
   deleteFromDigitalOceanAWS,
   uploadToDigitalOceanAWS,
 } from '../../utils/uploadToDigitalOceanAWS';
+import { tierService } from '../Tier/tier.service';
+import { UserServices } from '../User/user.service';
 
 // Create new content
 const createContent = async (
@@ -15,29 +17,9 @@ const createContent = async (
   coverImageFile?: Express.Multer.File,
   contentFile?: Express.Multer.File,
 ) => {
-  const isTierExist = await prisma.tier.findUnique({
-    where: {
-      id: payload.tierId,
-      isDeleted: false
-    },
-    select: {
-      id: true
-    }
-  })
-  if (!isTierExist) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
-  }
-  const isAuthorExist = await prisma.user.findUnique({
-    where: {
-      id: payload.authorId,
-    },
-    select: {
-      id: true
-    }
-  })
-  if (!isAuthorExist) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
-  }
+  await tierService.isTierExist(payload.tierId)
+  await UserServices.isUserExist(payload.authorId)
+
   if (payload.contentType === 'ARTICLE') {
     if (!coverImageFile) {
       throw new AppError(httpStatus.NOT_FOUND, 'Cover Image not provied')
@@ -142,31 +124,10 @@ const updateContent = async (
 
 
   if (payload.tierId) {
-    const isTierExist = await prisma.tier.findUnique({
-      where: {
-        id: payload.tierId,
-        isDeleted: false
-      },
-      select: {
-        id: true
-      }
-    })
-    if (!isTierExist) {
-      throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
-    }
+    await tierService.isTierExist(payload.tierId)
   }
   if (payload.authorId) {
-    const isAuthorExist = await prisma.user.findUnique({
-      where: {
-        id: payload.authorId,
-      },
-      select: {
-        id: true
-      }
-    })
-    if (!isAuthorExist) {
-      throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
-    }
+    await UserServices.isUserExist(payload.authorId)
   }
 
   if (payload?.contentType === 'ARTICLE' && coverImageFile) {

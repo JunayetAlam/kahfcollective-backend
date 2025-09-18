@@ -170,6 +170,19 @@ const togglePopularTier = async (id: string) => {
   });
 };
 
+const isTierExist = async (id: string) => {
+  const tier = await prisma.tier.findUnique({
+    where: { id, isDeleted: false },
+    select: {
+      id: true
+    }
+  });
+  if (!tier) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+  }
+  return tier
+}
+
 export const tierService = {
   createTier,
   getAllTiers,
@@ -178,4 +191,5 @@ export const tierService = {
   toggleDeleteTier,
   toggleHideTier,
   togglePopularTier,
+  isTierExist
 };

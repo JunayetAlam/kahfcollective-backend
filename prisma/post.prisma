@@ -5,6 +5,7 @@ model Post {
     userId    String  @db.ObjectId
     forumId   String  @db.ObjectId
     isDeleted Boolean @default(false)
+    isPublished Boolean @default(false)
 
     user  User  @relation(fields: [userId], references: [id])
     forum Forum @relation(fields: [forumId], references: [id])
