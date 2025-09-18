@@ -11,59 +11,52 @@ import {
 
 // Create new content
 const createContent = async (
-  payload: Omit<Content, 'id' | 'createdAt' | 'updatedAt'>,
+  payload: Content,
   coverImageFile?: Express.Multer.File,
   contentFile?: Express.Multer.File,
 ) => {
-  if (!coverImageFile && !contentFile)
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Cover image or content file must be provided',
-    );
+  const isTierExist = await prisma.tier.findUnique({
+    where: {
+      id: payload.tierId,
+      isDeleted: false
+    },
+    select: {
+      id: true
+    }
+  })
+  if (!isTierExist) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+  }
+  const isAuthorExist = await prisma.user.findUnique({
+    where: {
+      id: payload.authorId,
+    },
+    select: {
+      id: true
+    }
+  })
+  if (!isAuthorExist) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+  }
+  if (payload.contentType === 'ARTICLE') {
+    if (!coverImageFile) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Cover Image not provied')
+    } else {
+      payload.coverImage = (
+        await uploadToDigitalOceanAWS(coverImageFile)
+      ).Location;
+    }
+  }
 
-  if (coverImageFile && contentFile)
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Cannot provide both cover image and content file at the same time',
-    );
-
-  if (payload.contentType === 'ARTICLE' && !coverImageFile)
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Cover image is required to create an ARTICLE',
-    );
-
-  if (payload.contentType === 'SERMONS' && !contentFile)
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Content file is required to create SERMONS',
-    );
-
-  if (coverImageFile && !coverImageFile.mimetype.startsWith('image'))
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Cover file must be an image',
-    );
-
-  if (
-    contentFile &&
-    !(
-      contentFile.mimetype.startsWith('video') ||
-      contentFile.mimetype.startsWith('audio')
-    )
-  )
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Content file must be a video or audio file',
-    );
-
-  if (coverImageFile)
-    payload.coverImage = (
-      await uploadToDigitalOceanAWS(coverImageFile)
-    ).Location;
-
-  if (contentFile)
-    payload.fileLink = (await uploadToDigitalOceanAWS(contentFile)).Location;
+  if (payload.contentType === 'SERMONS') {
+    if (!contentFile) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Content file not provided')
+    } else {
+      payload.fileLink = (
+        await uploadToDigitalOceanAWS(contentFile)
+      ).Location;
+    }
+  }
 
   const content = await prisma.content.create({
     data: {
@@ -86,6 +79,12 @@ const getContentById = async (id: string) => {
           email: true,
         },
       },
+      tier: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
     },
   });
 
@@ -114,13 +113,18 @@ const getAllContents = async (query: any) => {
           profile: true,
         },
       },
-      contentOrDescriptor: true,
+      tier: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      description: true,
       contentType: true,
       coverImage: true,
       createdAt: true,
       fileLink: true,
       id: true,
-      tier: true,
       title: true,
       updatedAt: true,
     })
@@ -128,108 +132,55 @@ const getAllContents = async (query: any) => {
   return result;
 };
 
-// Update content (only by its author)
 
-const updateContent = async ({
-  id,
-  user,
-  payload,
-  coverImageFile,
-  contentFile,
-}: {
-  id: string;
-  user: JwtPayload;
-  payload: Partial<Omit<Content, 'id' | 'createdAt' | 'updatedAt'>>;
-  coverImageFile?: Express.Multer.File;
-  contentFile?: Express.Multer.File;
-}) => {
-  const existingContent = await prisma.content.findUnique({ where: { id } });
+const updateContent = async (
+  id: string,
+  payload: Partial<Omit<Content, 'id' | 'createdAt' | 'updatedAt'>>,
+  coverImageFile?: Express.Multer.File,
+  contentFile?: Express.Multer.File,
+) => {
 
-  if (!existingContent) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
+
+  if (payload.tierId) {
+    const isTierExist = await prisma.tier.findUnique({
+      where: {
+        id: payload.tierId,
+        isDeleted: false
+      },
+      select: {
+        id: true
+      }
+    })
+    if (!isTierExist) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+    }
+  }
+  if (payload.authorId) {
+    const isAuthorExist = await prisma.user.findUnique({
+      where: {
+        id: payload.authorId,
+      },
+      select: {
+        id: true
+      }
+    })
+    if (!isAuthorExist) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+    }
   }
 
-  if (
-    user.role !== UserRoleEnum.SUPERADMIN &&
-    existingContent.authorId !== user.id
-  ) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'You are not allowed to update this content',
-    );
-  }
-
-  const authorExist = await prisma.user.findUnique({
-    where: { id: payload.authorId },
-  });
-
-  if (!authorExist)
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'You are not allowed to update this content',
-    );
-
-  // Validation for coverImageFile
-  if (coverImageFile && !coverImageFile.mimetype.startsWith('image')) {
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Cover file must be an image',
-    );
-  }
-
-  // Validation for contentFile
-  if (
-    contentFile &&
-    !(
-      contentFile.mimetype.startsWith('video') ||
-      contentFile.mimetype.startsWith('audio')
-    )
-  ) {
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Content file must be a video or audio file',
-    );
-  }
-
-  // Upload new files if provided
-  if (coverImageFile) {
+  if (payload?.contentType === 'ARTICLE' && coverImageFile) {
     payload.coverImage = (
       await uploadToDigitalOceanAWS(coverImageFile)
     ).Location;
-    if (existingContent.coverImage)
-      deleteFromDigitalOceanAWS(existingContent.coverImage);
   }
 
-  if (contentFile) {
-    payload.fileLink = (await uploadToDigitalOceanAWS(contentFile)).Location;
-    if (existingContent.fileLink)
-      deleteFromDigitalOceanAWS(existingContent.fileLink);
+  if (payload?.contentType === 'SERMONS' && contentFile) {
+    payload.fileLink = (
+      await uploadToDigitalOceanAWS(contentFile)
+    ).Location;
   }
 
-  // Validate contentType-specific requirements
-  const newContentType = payload.contentType || existingContent.contentType;
-
-  if (
-    newContentType === 'ARTICLE' &&
-    !payload.coverImage &&
-    !existingContent.coverImage
-  ) {
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Cover image is required for ARTICLE',
-    );
-  }
-
-  if (
-    newContentType === 'SERMONS' &&
-    !payload.fileLink &&
-    !existingContent.fileLink
-  ) {
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      'Content file is required for SERMONS',
-    );
-  }
 
   const updated = await prisma.content.update({
     where: { id },
@@ -239,25 +190,13 @@ const updateContent = async ({
   return updated;
 };
 
-// Delete content (only by its author)
-const deleteContent = async (id: string, user: JwtPayload) => {
-  const existingContent = await prisma.content.findUnique({ where: { id } });
-
-  if (!existingContent) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
-  }
-
-  if (
-    user.role !== UserRoleEnum.SUPERADMIN &&
-    existingContent.authorId !== user.id
-  ) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'You can only delete your own content',
-    );
-  }
-
-  await prisma.content.delete({ where: { id } });
+const deleteContent = async (id: string) => {
+  await prisma.content.update({
+    where: { id },
+    data: {
+      isDeleted: true
+    }
+  });
 
   return { message: 'Content deleted successfully' };
 };

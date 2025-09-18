@@ -6,6 +6,8 @@ model Content {
     fileLink    String?
     coverImage  String?
 
+    isDeleted Boolean @default(false)
+
     authorId String @db.ObjectId
     author   User   @relation(fields: [authorId], references: [id])
 
