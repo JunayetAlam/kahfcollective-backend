@@ -1,0 +1,57 @@
+model Forum {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    title       String
+    forumType   ForumTypeEnum
+    description String
+    courseId    String?       @db.ObjectId
+    tierId      String?       @db.ObjectId
+    country     String?
+    isDeleted   Boolean       @default(false)
+
+    events     Events[]
+    posts      Post[]
+    userForums UserForum[]
+
+    course Course? @relation(fields: [courseId], references: [id])
+    tier   Tier?   @relation(fields: [tierId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("forums")
+}
+
+model UserForum {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    userId    String  @db.ObjectId
+    forumId   String  @db.ObjectId
+    isLeave   Boolean @default(false)
+    isDeleted Boolean @default(false)
+
+    user  User  @relation(fields: [userId], references: [id])
+    forum Forum @relation(fields: [forumId], references: [id])
+
+    replies Reply[]
+    reacts  React[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("user_forums")
+}
+
+enum ForumTypeEnum {
+    STUDY_CIRCLES
+    LOCATION_BASED
+}
+
+type Events {
+    id        String
+    eventName String?
+    about     String?
+    location  String?
+    date      DateTime?
+    time      String?
+}

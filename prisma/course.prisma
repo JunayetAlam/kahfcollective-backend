@@ -3,12 +3,89 @@ model Course {
 
     title       String
     description String
-    tierLevel   TiersLevelEnum
+    tierId      String       @db.ObjectId
     status      CourseStatus
-    // contentId
+    isDeleted   Boolean      @default(false)
+
+    forums Forum[]
+    tier   Tier    @relation(fields: [tierId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@map("courses")
+}
+
+model CourseContents {
+    id   String                @id @default(auto()) @map("_id") @db.ObjectId
+    type CourseContentTypeEnum
+
+    videoUrl  String?
+    quizzes   Quiz[]
+    status    ContentStatusEnum
+    isDeleted Boolean           @default(false)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("course_contents")
+}
+
+model Quiz {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    courseContentId String      @db.ObjectId
+    question        String
+    options         Options
+    rightAnswer     RightAnswer
+    isDeleted       Boolean     @default(false)
+
+    courseContent CourseContents @relation(fields: [courseContentId], references: [id])
+
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    quizAnswers QuizAnswers[]
+
+    @@map("quizzes")
+}
+
+model QuizAnswers {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    quizId    String      @db.ObjectId
+    userId    String      @db.ObjectId
+    answer    RightAnswer
+    isDeleted Boolean     @default(false)
+
+    quiz Quiz @relation(fields: [quizId], references: [id])
+    user User @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("quiz_answers")
+}
+
+enum CourseContentTypeEnum {
+    VIDEO
+    QUIZ
+}
+
+enum ContentStatusEnum {
+    PUBLISHED
+    DRAFT
+}
+
+type Options {
+    A String
+    B String
+    C String
+    D String
+}
+
+enum RightAnswer {
+    A
+    B
+    C
+    D
 }

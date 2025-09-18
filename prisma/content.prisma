@@ -1,18 +1,25 @@
 model Content {
-    id                  String          @id @default(auto()) @map("_id") @db.ObjectId
-    contentType         ContentTypeEnum
-    title               String
-    contentOrDescriptor String
-    tier                TiersLevelEnum
-    fileLink            String?
-    coverImage          String?
+    id          String          @id @default(auto()) @map("_id") @db.ObjectId
+    contentType ContentTypeEnum
+    title       String
+    description String
+    fileLink    String?
+    coverImage  String?
 
     authorId String @db.ObjectId
     author   User   @relation(fields: [authorId], references: [id])
+
+    tierId String @db.ObjectId
+    tier   Tier   @relation(fields: [tierId], references: [id])
 
     createdAt DateTime @default(now())
     // authorOrSpeaker     String
     updatedAt DateTime @updatedAt
 
     @@map("contents")
+}
+
+enum ContentTypeEnum {
+    ARTICLE
+    SERMONS
 }

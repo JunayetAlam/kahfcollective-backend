@@ -1,0 +1,56 @@
+model Post {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    message   String
+    userId    String  @db.ObjectId
+    forumId   String  @db.ObjectId
+    isDeleted Boolean @default(false)
+
+    user  User  @relation(fields: [userId], references: [id])
+    forum Forum @relation(fields: [forumId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    reacts    React[]
+    replies   Reply[]
+
+    @@map("posts")
+}
+
+model React {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    userForumId String  @db.ObjectId
+    postId      String  @db.ObjectId
+    isDeleted   Boolean @default(false)
+
+    userForum UserForum @relation(fields: [userForumId], references: [id])
+    post      Post      @relation(fields: [postId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("reacts")
+}
+
+model Reply {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    userForumId   String  @db.ObjectId
+    postId        String  @db.ObjectId
+    forumId       String  @db.ObjectId
+    parentReplyId String? @db.ObjectId
+    isDeleted     Boolean @default(false)
+
+    message String
+
+    userForum       UserForum @relation(fields: [userForumId], references: [id])
+    post            Post      @relation(fields: [postId], references: [id])
+    parentReply     Reply?    @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    childrenReplies Reply[]   @relation("ReplyToReply")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("replies")
+}

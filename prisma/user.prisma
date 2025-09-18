@@ -31,8 +31,11 @@ model User {
   emailVerificationToken        String?
   emailVerificationTokenExpires DateTime?
 
-  payments Payment[]
-  Content  Content[]
+  payments   Payment[]
+  content    Content[]
+  posts      Post[]
+  userForums UserForum[]
+  quizAnswers QuizAnswers[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
