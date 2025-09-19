@@ -88,6 +88,15 @@ const updateUserStatus = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const getMyStudents = catchAsync(async (req, res) => {
+  const result = await UserServices.getMyStudents(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Student retrieved successfully',
+    data: result,
+  });
+});
 
 export const UserControllers = {
   getAllUsers,
@@ -97,4 +106,5 @@ export const UserControllers = {
   updateProfileImage,
   updateUserRoleStatus,
   updateUserStatus,
+  getMyStudents
 };

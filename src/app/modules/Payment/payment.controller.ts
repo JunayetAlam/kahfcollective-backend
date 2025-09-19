@@ -83,6 +83,20 @@ const cancelPayment = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const buyTier = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user?.id;
+  const email = req.user.email
+
+  const result = await PaymentService.buyTier(userId, email, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Payment Cancel Successfully',
+    data: result,
+  });
+});
 
 export const PaymentController = {
   getAllForAdmin,
@@ -90,5 +104,6 @@ export const PaymentController = {
   getSingleForAdmin,
   getSingleForUser,
   cancelPayment,
-  singleTransactionHistoryBySessionId
+  singleTransactionHistoryBySessionId,
+  buyTier
 };

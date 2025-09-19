@@ -31,11 +31,15 @@ model User {
   emailVerificationToken        String?
   emailVerificationTokenExpires DateTime?
 
-  payments   Payment[]
-  content    Content[]
-  posts      Post[]
-  userForums UserForum[]
-  quizAnswers QuizAnswers[]
+  payments        Payment[]
+  content         Content[]
+  posts           Post[]
+  userForums      UserForum[]
+  quizAnswers     QuizAnswers[]
+  courses         Course[]
+  coursesContents CourseContents[]
+  quizzes         Quiz[]
+  coursesEnroll   CourseEnroll[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

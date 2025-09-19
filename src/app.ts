@@ -9,7 +9,7 @@ import { html } from "./htmldesign";
 const app: Application = express();
 
 app.post(
-  "/api/v1/payments/webhook",
+  "/api/v1/payments/webhooks",
   express.raw({ type: "application/json" }),
   StripeWebHook
 );

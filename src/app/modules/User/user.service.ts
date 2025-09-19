@@ -129,6 +129,48 @@ const isUserExist = async (id: string) => {
   return user
 }
 
+const getMyStudents = async (userId: string) => {
+  return await prisma.user.findMany({
+    where: {
+      role: 'USER',
+      coursesEnroll: {
+        some: {
+          course: {
+            instructorId: userId
+          },
+          isEnrolled: true
+        },
+
+      },
+    },
+    select: {
+      id: true,
+      fullName: true,
+      profile: true,
+      email: true,
+      coursesEnroll: {
+        where: {
+          isEnrolled: true,
+          course: {
+            instructorId: userId
+          }
+        },
+        select: {
+          id: true,
+          courseId: true,
+          userId: true,
+          course: {
+            select: {
+              title: true,
+            }
+          }
+        }
+      },
+
+    }
+  })
+}
+
 
 
 export const UserServices = {
@@ -139,5 +181,6 @@ export const UserServices = {
   updateUserRoleStatusIntoDB,
   updateProfileStatus,
   updateProfileImg,
-  isUserExist
+  isUserExist,
+  getMyStudents
 };

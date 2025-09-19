@@ -12,7 +12,3 @@ enum TiersLevelEnum {
     ACTUALIZE
 }
 
-enum CourseStatus {
-    ACTIVE
-    HIDDEN
-}

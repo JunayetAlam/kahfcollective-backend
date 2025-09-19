@@ -5,6 +5,7 @@ import auth from '../../middlewares/auth';
 const router = express.Router();
 
 router.get('/admin', auth('SUPERADMIN'), PaymentController.getAllForAdmin);
+router.post('/buy-tier/:id', auth('USER'), PaymentController.buyTier);
 router.post('/cancel/:id', auth('ANY'), PaymentController.cancelPayment);
 router.get('/admin/:id', auth('SUPERADMIN'), PaymentController.getSingleForAdmin);
 router.get('/', auth('USER'), PaymentController.getAllForUser);

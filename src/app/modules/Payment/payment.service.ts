@@ -3,6 +3,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
 import { UserRoleEnum } from '@prisma/client';
+import { checkout } from '../../utils/StripeUtils';
 
 const getAllPayments = async (query: Record<string, any>) => {
     const paymentQuery = new QueryBuilder<typeof prisma.payment>(prisma.payment, query);
@@ -97,6 +98,50 @@ const singleTransactionHistoryBySessionId = async (query: { stripeSessionId: str
     return result
 }
 
+const buyTier = async (userId: string, email: string, tierId: string) => {
+    const tier = await prisma.tier.findUnique({
+        where: {
+            id: tierId,
+            isDeleted: false,
+            isHide: false
+        }
+    })
+    if (!tier) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+    }
+
+    let payment = await prisma.payment.findUnique({
+        where: {
+            userId_tierId: {
+                tierId,
+                userId
+            }
+        }
+    });
+
+    if (payment && payment.status === 'SUCCESS') {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Already purchased the tier')
+    };
+
+    if (!payment) {
+        payment = await prisma.payment.create({
+            data: {
+                tierId,
+                userId,
+                amount: tier.price,
+            }
+        })
+    }
+
+    const paymentUrl = await checkout({ stripePriceId: tier.stripePriceId, email: email, paymentId: payment?.id || '' })
+
+    return {
+        payment,
+        stripePriceId: tier.stripePriceId,
+        paymentUrl: paymentUrl
+    }
+
+};
 const cancelPayment = async (id: string, userId: string, role: UserRoleEnum) => {
     return await prisma.payment.update({
         where: {
@@ -117,5 +162,6 @@ export const PaymentService = {
     getAllPayments,
     singleTransactionHistory,
     cancelPayment,
-    singleTransactionHistoryBySessionId
+    singleTransactionHistoryBySessionId,
+    buyTier
 };

@@ -10,6 +10,11 @@ const router = express.Router();
 
 router.get('/', auth('SUPERADMIN'), UserControllers.getAllUsers);
 router.get('/me', auth('ANY'), UserControllers.getMyProfile);
+router.get(
+  '/my-students',
+  auth('INSTRUCTOR'),
+  UserControllers.getMyStudents,
+);
 router.get('/:id', auth('ANY'), UserControllers.getUserDetails);
 
 router.put(
@@ -40,5 +45,6 @@ router.put(
   validateRequest.body(userValidation.updateUserStatus),
   UserControllers.updateUserStatus,
 );
+
 
 export const UserRouters = router;

@@ -1,0 +1,1 @@
+// Define Course interfaces here

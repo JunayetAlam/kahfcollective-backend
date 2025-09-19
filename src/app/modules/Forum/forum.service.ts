@@ -1,4 +1,4 @@
-import { Forum } from '@prisma/client';
+import { Forum, UserRoleEnum } from '@prisma/client';
 import httpStatus from 'http-status';
 import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
@@ -6,7 +6,7 @@ import { tierService } from '../Tier/tier.service';
 import crypto from 'crypto';
 import QueryBuilder from '../../builder/QueryBuilder';
 
-const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId' | 'forumType'>) => {
+const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId'>) => {
     const isCourseId = await prisma.course.findUnique({
         where: { id: payload.courseId as string, isDeleted: false },
         select: {
@@ -19,11 +19,14 @@ const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 
 
     await tierService.isTierExist(payload.tierId as string);
     return await prisma.forum.create({
-        data: payload
+        data: {
+            ...payload,
+            forumType: 'STUDY_CIRCLES'
+        }
     })
 };
 
-const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' | 'country' | 'tierId' | 'forumType' | 'events'>) => {
+const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' | 'country' | 'tierId' | 'events'>) => {
 
 
     await tierService.isTierExist(payload.tierId as string);
@@ -34,7 +37,10 @@ const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' 
     })) || []
     payload.events = events
     return await prisma.forum.create({
-        data: payload
+        data: {
+            ...payload,
+            forumType: 'LOCATION_BASED'
+        }
     })
 };
 
@@ -60,7 +66,7 @@ const updateCircleForum = async (
     }
 
     return await prisma.forum.update({
-        where: { id: forumId },
+        where: { id: forumId, forumType: 'STUDY_CIRCLES' },
         data: payload,
     });
 };
@@ -79,7 +85,6 @@ const updateLocationForum = async (
     }
 
     if (payload.events) {
-        // Only generate new ID for events that don't have one
         payload.events = payload.events.map(event => ({
             ...event,
             id: event.id || crypto.randomBytes(2).toString('hex'),
@@ -87,14 +92,24 @@ const updateLocationForum = async (
     }
 
     return await prisma.forum.update({
-        where: { id: forumId },
+        where: { id: forumId, forumType: 'LOCATION_BASED' },
         data: payload,
     });
 };
 
-const getSingleForum = async (id: string) => {
+const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) => {
     const forum = await prisma.forum.findUnique({
-        where: { id },
+        where: {
+            id,
+            ...(role !== 'SUPERADMIN' && {
+                userForums: {
+                    some: {
+                        userId: userId
+                    }
+                }
+            })
+
+        },
         select: {
             id: true,
             title: true,
@@ -114,6 +129,21 @@ const getSingleForum = async (id: string) => {
                     name: true
                 }
             },
+            userForums: {
+                select: {
+                    id: true,
+                    userId: true,
+                    user: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            email: true,
+                            profile: true,
+                            gender: true
+                        }
+                    }
+                }
+            },
             createdAt: true
         }
     });
@@ -123,7 +153,6 @@ const getSingleForum = async (id: string) => {
     return forum;
 };
 
-// ---------------- GET ALL ----------------
 
 const getAllForums = async (query: any) => {
     const forumQuery = new QueryBuilder(prisma.forum, query);
@@ -160,7 +189,6 @@ const getAllForums = async (query: any) => {
     return result;
 };
 
-// ---------------- DELETE ----------------
 
 const deleteForum = async (forumId: string) => {
     await prisma.forum.update({ where: { id: forumId }, data: { isDeleted: true } });

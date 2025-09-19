@@ -3,16 +3,12 @@ import auth from '../../middlewares/auth';
 import { tierController } from './tier.controller';
 import validateRequest from '../../middlewares/validateRequest';
 import { tierValidation } from './tier.validation';
-import { upload } from '../../utils/fileUploader';
-import { parseBody } from '../../middlewares/parseBody';
 
 const router = express.Router();
 
 router.post(
   '/',
   auth('SUPERADMIN'),
-  upload.single('file'),
-  parseBody,
   validateRequest.body(tierValidation.createTier),
   tierController.createTier
 );
@@ -26,8 +22,6 @@ router.get('/admin/:id', auth('SUPERADMIN'), tierController.getTierById);
 router.patch(
   '/:id',
   auth('SUPERADMIN'),
-  upload.single('file'),
-  parseBody,
   validateRequest.body(tierValidation.updateTier),
   tierController.updateTier
 );

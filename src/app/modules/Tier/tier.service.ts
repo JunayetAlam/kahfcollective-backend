@@ -5,6 +5,7 @@ import { prisma } from '../../utils/prisma';
 import { stripe } from '../../utils/stripe';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { tierRepository } from './tier.repository';
+import { toggleDelete } from '../../utils/toggleDelete';
 
 const createTier = async (data: Tier) => {
 
@@ -47,7 +48,7 @@ const getAllTiers = async (query: Record<string, unknown>, role?: UserRoleEnum) 
       ...(role !== 'SUPERADMIN' && {
         id: true,
         name: true,
-        image: true,
+        points: true,
         price: true
       })
     })
@@ -66,7 +67,15 @@ const getTierById = async (id: string, role?: UserRoleEnum) => {
         isDeleted: false,
         isHide: false
       })
-    }
+    },
+    ...(role !== 'SUPERADMIN' && {
+      select: {
+        id: true,
+        name: true,
+        points: true,
+        price: true
+      }
+    })
   });
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
@@ -112,16 +121,7 @@ const updateTier = async (id: string, data: Partial<Tier>) => {
 };
 
 const toggleDeleteTier = async (id: string) => {
-  const result = await prisma.$runCommandRaw({
-    update: "tiers",
-    updates: [
-      {
-        q: { _id: { $oid: id } },
-        u: [{ $set: { isDeleted: { $not: "$isDeleted" } } }],
-      },
-    ],
-    ordered: true,
-  });
+  const result = await toggleDelete(id, 'tiers')
   return result
 };
 

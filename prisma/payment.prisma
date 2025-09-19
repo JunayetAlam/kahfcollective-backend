@@ -1,8 +1,7 @@
 model Payment {
-    id        String  @id @default(auto()) @map("_id") @db.ObjectId
-    productId String  @unique @db.ObjectId
-    userId    String  @db.ObjectId
-    tierId    String? @db.ObjectId
+    id        String @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String @db.ObjectId
+    tierId    String @db.ObjectId
 
     amount   Float
     currency Currency      @default(usd)
@@ -19,10 +18,11 @@ model Payment {
     stripeCustomerId String?
 
     user      User     @relation(fields: [userId], references: [id])
-    tier      Tier?    @relation(fields: [tierId], references: [id])
+    tier      Tier     @relation(fields: [tierId], references: [id])
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    @@unique([userId, tierId])
     @@map("payments")
 }
 

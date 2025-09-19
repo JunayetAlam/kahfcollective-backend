@@ -1,14 +1,19 @@
 model Course {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    title       String
-    description String
-    tierId      String       @db.ObjectId
-    status      CourseStatus
-    isDeleted   Boolean      @default(false)
+    title        String
+    description  String
+    tierId       String       @db.ObjectId
+    status       CourseStatus @default(ACTIVE)
+    language     String
+    isDeleted    Boolean      @default(false)
+    instructorId String       @db.ObjectId
 
-    forums Forum[]
-    tier   Tier    @relation(fields: [tierId], references: [id])
+    forums         Forum[]
+    courseContents CourseContents[]
+    coursesEnroll  CourseEnroll[]
+    tier           Tier             @relation(fields: [tierId], references: [id])
+    instructor     User             @relation(fields: [instructorId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -16,14 +21,39 @@ model Course {
     @@map("courses")
 }
 
-model CourseContents {
-    id   String                @id @default(auto()) @map("_id") @db.ObjectId
-    type CourseContentTypeEnum
+model CourseEnroll {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    videoUrl  String?
-    quizzes   Quiz[]
-    status    ContentStatusEnum
-    isDeleted Boolean           @default(false)
+    userId     String  @db.ObjectId
+    courseId   String  @db.ObjectId
+    isEnrolled Boolean @default(true)
+
+    user   User   @relation(fields: [userId], references: [id])
+    course Course @relation(fields: [courseId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId, courseId])
+    @@map("course")
+}
+
+model CourseContents {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    type         CourseContentTypeEnum
+    title        String
+    description  String
+    videoUrl     String?
+    quizzes      Quiz[]
+    status       ContentStatusEnum
+    isDeleted    Boolean               @default(false)
+    index        Int
+    courseId     String                @db.ObjectId
+    instructorId String                @db.ObjectId
+
+    course     Course @relation(fields: [courseId], references: [id])
+    instructor User   @relation(fields: [instructorId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -35,12 +65,15 @@ model Quiz {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     courseContentId String      @db.ObjectId
+    instructorId    String      @db.ObjectId
     question        String
     options         Options
     rightAnswer     RightAnswer
     isDeleted       Boolean     @default(false)
+    index           Int
 
     courseContent CourseContents @relation(fields: [courseContentId], references: [id])
+    instructor    User           @relation(fields: [instructorId], references: [id])
 
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
@@ -88,4 +121,10 @@ enum RightAnswer {
     B
     C
     D
+}
+
+enum CourseStatus {
+    DRAFT
+    ACTIVE
+    HIDDEN
 }

@@ -39,6 +39,7 @@ model UserForum {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    @@unique([userId, forumId])
     @@map("user_forums")
 }
 
