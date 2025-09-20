@@ -89,7 +89,8 @@ const updateUserStatus = catchAsync(async (req, res) => {
   });
 });
 const getMyStudents = catchAsync(async (req, res) => {
-  const result = await UserServices.getMyStudents(req.user.id);
+
+  const result = await UserServices.getMyStudents(req.user.id,req?.query?.courseId as string || undefined);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

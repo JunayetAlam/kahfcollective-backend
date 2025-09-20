@@ -57,12 +57,12 @@ const getSingleForum = catchAsync(async (req, res) => {
 });
 
 const getAllForums = catchAsync(async (req, res) => {
-  const result = await ForumService.getAllForums(req.query);
+  const result = await ForumService.getAllForums(req.query, req.user.role);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Forums retrieved successfully',
-    data: result,
+   ...result
   });
 });
 
@@ -97,6 +97,7 @@ const getAllConnectedUserToForum = catchAsync(async (req, res) => {
   });
 });
 
+
 export const ForumController = {
   createCircleForum,
   createLocationForum,
@@ -106,5 +107,5 @@ export const ForumController = {
   getAllForums,
   deleteForum,
   joinForum,
-  getAllConnectedUserToForum
+  getAllConnectedUserToForum,
 };

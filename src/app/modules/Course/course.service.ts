@@ -105,6 +105,9 @@ const getCourseById = async (id: string, role?: UserRoleEnum) => {
                     status: true,
                     index: true,
                     createdAt: true,
+                    title: true,
+                    description: true,
+                   
                 },
                 orderBy: { index: 'asc' }
             }

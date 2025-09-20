@@ -105,8 +105,9 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
             where: {
                 userId_forumId: {
                     forumId: id,
-                    userId
-                }
+                    userId,
+                },
+
             }
         });
 
@@ -119,6 +120,7 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
     const forum = await prisma.forum.findUnique({
         where: {
             id,
+            ...(role === 'USER' && { isDeleted: false }),
         },
         select: {
             id: true,
@@ -126,6 +128,8 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
             description: true,
             events: true,
             country: true,
+            courseId: true,
+            tierId: true,
             course: {
                 select: {
                     id: true,
@@ -164,7 +168,11 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
 };
 
 
-const getAllForums = async (query: any) => {
+const getAllForums = async (query: any, role: UserRoleEnum) => {
+    if (role === 'USER') {
+        query.status = 'PUBLISHED'
+    }
+    query.isDeleted = false
     const forumQuery = new QueryBuilder(prisma.forum, query);
 
     const result = await forumQuery
@@ -192,6 +200,15 @@ const getAllForums = async (query: any) => {
                     name: true
                 }
             },
+           _count: {
+            select: {
+                posts: {
+                    where: {
+                        isDeleted: false,
+                    }
+                }
+            }
+           },
             createdAt: true
         })
         .execute();
@@ -204,6 +221,7 @@ const deleteForum = async (forumId: string) => {
     await prisma.forum.update({ where: { id: forumId }, data: { isDeleted: true } });
     return { message: 'Forum deleted successfully' };
 };
+
 
 const joinForum = async (userId: string, forumId: string) => {
     const isForumExist = await prisma.forum.findUnique({
@@ -300,6 +318,8 @@ const getAllConnectedUserToForum = async (id: string, userId: string, role: User
 
 }
 
+
+
 export const ForumService = {
     createCircleForum,
     createLocationForum,
@@ -309,5 +329,5 @@ export const ForumService = {
     getAllForums,
     deleteForum,
     joinForum,
-    getAllConnectedUserToForum
+    getAllConnectedUserToForum,
 };

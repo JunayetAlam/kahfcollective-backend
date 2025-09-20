@@ -46,7 +46,7 @@ const checkSuperAdmin = (role: UserRoleEnum, userId: string) => {
         }
     }
     else {
-        return {}
+        return {isDeleted: false,}
     }
 }
 
@@ -165,6 +165,7 @@ const createQuizContent = async (payload: Pick<CourseContents, 'courseId' | 'tit
 }
 
 const updateContent = async (id: string, payload: Partial<Pick<CourseContents, 'description' | 'title' | 'status'>>, userId: string, role: UserRoleEnum) => {
+    console.log(payload)
     const result = await prisma.courseContents.update({
         where: {
             id,
@@ -333,6 +334,7 @@ const getSingleContentForUser = async (contentId: string, userId: string) => {
 
 // 3. Get all quiz for a specific course content (for owners/superadmins)
 const getAllQuizForSpecificCourseContent = async (courseContentId: string, userId: string, role: UserRoleEnum) => {
+    console.log(courseContentId, userId, role)
     const isCourseContentExist = await prisma.courseContents.findUnique({
         where: {
             id: courseContentId,

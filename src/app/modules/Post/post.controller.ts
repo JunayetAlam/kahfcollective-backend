@@ -71,7 +71,17 @@ const giveReact = catchAsync(async (req: Request, res) => {
 const getAllPostForSpecificForum = catchAsync(async (req: Request, res) => {
   const { forumId } = req.params;
 
-  const result = await PostService.getAllPostForSpecificForum(forumId, req.query);
+  const result = await PostService.getAllPostForSpecificForum(forumId, req.query, req.user.role);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Posts retrieved successfully',
+    ...result,
+  });
+});
+const getAllPost = catchAsync(async (req: Request, res) => {
+
+  const result = await PostService.getAllPost(req.query);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -105,6 +115,28 @@ const getAllReactForPost = catchAsync(async (req: Request, res) => {
     ...result,
   });
 });
+const togglePublish = catchAsync(async (req: Request, res) => {
+  const { postId } = req.params;
+
+  const result = await PostService.togglePublish(postId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Post publish status toggled successfully',
+    data: result,
+  });
+});
+const toggleDeletePost = catchAsync(async (req: Request, res) => {
+  const { postId } = req.params;
+
+  const result = await PostService.toggleDeletePost(postId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Post deleted s successfully',
+    data: result,
+  });
+});
 
 export const PostControllers = {
   createPost,
@@ -114,4 +146,7 @@ export const PostControllers = {
   getAllPostForSpecificForum,
   getAllReplyForSpecificPost,
   getAllReactForPost,
+  togglePublish,
+  getAllPost,
+  toggleDeletePost
 };

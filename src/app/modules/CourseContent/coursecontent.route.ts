@@ -93,7 +93,6 @@ router.post(
   CourseContentController.createQuiz
 );
 
-// Update quiz
 router.patch(
   '/quiz/:quizId',
   auth('INSTRUCTOR', 'SUPERADMIN'),
@@ -101,14 +100,12 @@ router.patch(
   CourseContentController.updateQuiz
 );
 
-// Toggle delete quiz
 router.patch(
   '/quiz/:quizId/toggle-delete',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   CourseContentController.toggleDeleteQuiz
 );
 
-// Change quiz index
 router.patch(
   '/quiz/:quizId/change-index',
   auth('INSTRUCTOR', 'SUPERADMIN'),
@@ -116,28 +113,24 @@ router.patch(
   CourseContentController.changeQuizIndex
 );
 
-// Get all quizzes for specific course content (for owners/superadmins)
 router.get(
   '/:courseContentId/quizzes',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   CourseContentController.getAllQuizForSpecificCourseContent
 );
 
-// Get all quizzes for specific course content (for normal users)
 router.get(
   '/:courseContentId/quizzes/user',
   auth('ANY'),
   CourseContentController.getAllQuizForSpecificCourseContentForUser
 );
 
-// Get single quiz (for owners/superadmins)
 router.get(
   '/quiz/:quizId/admin',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   CourseContentController.getSingleQuiz
 );
 
-// Get single quiz (for normal users)
 router.get(
   '/quiz/:quizId',
   auth('ANY'),

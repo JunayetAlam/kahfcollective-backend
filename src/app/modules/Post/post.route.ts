@@ -47,6 +47,11 @@ router.get(
   auth('ANY'),
   PostControllers.getAllPostForSpecificForum,
 );
+router.get(
+  '',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  PostControllers.getAllPost,
+);
 
 // Get all replies for a post
 router.get(
@@ -60,6 +65,16 @@ router.get(
   '/reacts/:postId',
   auth('ANY'),
   PostControllers.getAllReactForPost,
+);
+router.post(
+  '/toggle-status/:postId',
+  auth('INSTRUCTOR', "SUPERADMIN"),
+  PostControllers.togglePublish,
+);
+router.delete(
+  '/toggle-delete/:postId',
+  auth('INSTRUCTOR', "SUPERADMIN"),
+  PostControllers.toggleDeletePost,
 );
 
 export const PostRouters = router;

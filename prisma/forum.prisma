@@ -3,11 +3,12 @@ model Forum {
 
     title       String
     forumType   ForumTypeEnum
+   
     description String
-    courseId    String?       @db.ObjectId
-    tierId      String?       @db.ObjectId
+    courseId    String?         @db.ObjectId
+    tierId      String?         @db.ObjectId
     country     String?
-    isDeleted   Boolean       @default(false)
+    isDeleted   Boolean         @default(false)
 
     events     Events[]
     posts      Post[]

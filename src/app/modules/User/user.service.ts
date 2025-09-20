@@ -129,14 +129,15 @@ const isUserExist = async (id: string) => {
   return user
 }
 
-const getMyStudents = async (userId: string) => {
+const getMyStudents = async (userId: string, courseId?: string) => {
   return await prisma.user.findMany({
     where: {
       role: 'USER',
       coursesEnroll: {
         some: {
           course: {
-            instructorId: userId
+            instructorId: userId,
+            ...(courseId && { id: courseId })
           },
           isEnrolled: true
         },

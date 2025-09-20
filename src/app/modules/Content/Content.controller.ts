@@ -43,7 +43,7 @@ const getAllContents = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Contents fetched successfully',
-    data: result,
+   ...result
   });
 });
 

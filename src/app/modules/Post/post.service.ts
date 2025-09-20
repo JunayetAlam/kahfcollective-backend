@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
+import { toggleDelete } from '../../utils/toggleDelete';
 
 const needsValidation = (role: UserRoleEnum) => {
     return role === 'USER';
@@ -10,7 +11,7 @@ const needsValidation = (role: UserRoleEnum) => {
 
 const checkForumMembership = async (userId: string, forumId: string, role: UserRoleEnum) => {
     if (!needsValidation(role)) {
-        return; 
+        return;
     }
 
     const joinForum = await prisma.joinForum.findUnique({
@@ -56,7 +57,8 @@ const replyToPost = async (userId: string, postId: string, payload: Pick<Reply, 
     // Check if post exists
     const post = await prisma.post.findUnique({
         where: {
-            id: postId
+            id: postId,
+            isPublished: true
         },
         select: {
             id: true,
@@ -198,7 +200,8 @@ const giveReact = async (userId: string, postId: string, role: UserRoleEnum) => 
     const post = await prisma.post.findUnique({
         where: {
             id: postId,
-            isDeleted: false
+            isDeleted: false,
+            isPublished: true
         },
         select: {
             id: true,
@@ -284,7 +287,7 @@ const giveReact = async (userId: string, postId: string, role: UserRoleEnum) => 
     }
 };
 
-const getAllPostForSpecificForum = async (forumId: string, query: any) => {
+const getAllPostForSpecificForum = async (forumId: string, query: any, role: UserRoleEnum) => {
     // Check if forum exists
     const forum = await prisma.forum.findUnique({
         where: {
@@ -301,6 +304,9 @@ const getAllPostForSpecificForum = async (forumId: string, query: any) => {
 
     query.isDeleted = false;
     query.forumId = forumId;
+    if (role === 'USER') {
+        query.isPublished = true
+    }
 
     const postsQuery = new QueryBuilder(
         prisma.post,
@@ -317,6 +323,52 @@ const getAllPostForSpecificForum = async (forumId: string, query: any) => {
             message: true,
             createdAt: true,
             updatedAt: true,
+            isPublished: true,
+            _count: {
+                select: {
+                    reacts: {
+                        where: {
+                            isDeleted: false
+                        }
+                    },
+                    replies: {
+                        where: {
+                            isDeleted: false,
+                        }
+                    }
+                }
+            },
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    profile: true
+                }
+            }
+        })
+        .execute();
+
+    return result;
+};
+const getAllPost = async (query: any) => {
+
+    query.isDeleted = false;
+
+    const postsQuery = new QueryBuilder(
+        prisma.post,
+        query
+    );
+    const result = await postsQuery
+        .filter()
+        .search(['message'])
+        .sort()
+        .paginate()
+        .customFields({
+            id: true,
+            message: true,
+            createdAt: true,
+            updatedAt: true,
+            isPublished: true,
             _count: {
                 select: {
                     reacts: {
@@ -349,7 +401,8 @@ const getAllReplyForSpecificPost = async (postId: string, query: any) => {
     const post = await prisma.post.findUnique({
         where: {
             id: postId,
-            isDeleted: false
+            isDeleted: false,
+            isPublished: true
         },
         select: {
             id: true
@@ -401,7 +454,8 @@ const getAllReactForPost = async (postId: string, query: any) => {
     const post = await prisma.post.findUnique({
         where: {
             id: postId,
-            isDeleted: false
+            isDeleted: false,
+            isPublished: true
         },
         select: {
             id: true
@@ -444,6 +498,27 @@ const getAllReactForPost = async (postId: string, query: any) => {
     return result;
 };
 
+const togglePublish = async (postId: string) => {
+    const result = await prisma.$runCommandRaw({
+        update: "posts",
+        updates: [
+            {
+                q: { _id: { $oid: postId } },
+                u: [{ $set: { isPublished: { $not: "$isPublished" } } }],
+            },
+        ],
+        ordered: true,
+    });
+    return result
+}
+
+const toggleDeletePost = async (id: string) => {
+
+    const result = await toggleDelete(id, 'posts',)
+    return result
+};
+
+
 export const PostService = {
     createPost,
     replyToPost,
@@ -451,5 +526,8 @@ export const PostService = {
     giveReact,
     getAllPostForSpecificForum,
     getAllReplyForSpecificPost,
-    getAllReactForPost
+    getAllReactForPost,
+    togglePublish,
+    getAllPost,
+    toggleDeletePost
 };
