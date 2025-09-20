@@ -8,6 +8,8 @@ import { ForumRouters } from '../modules/Forum/forum.route';
 import { CourseRouters } from '../modules/Course/course.route';
 import { CourseContentRouters } from '../modules/CourseContent/coursecontent.route';
 import { PaymentRoutes } from '../modules/Payment/payment.route';
+import { PostRouters } from '../modules/Post/post.route';
+import { QuizAnswerRouters } from '../modules/Quiz_Answer/quiz_answer.route';
 const router = express.Router();
 
 const moduleRoutes = [
@@ -47,6 +49,14 @@ const moduleRoutes = [
   {
     path: '/payments',
     route: PaymentRoutes,
+  },
+  {
+    path: '/posts',
+    route: PostRouters,
+  },
+  {
+    path: '/answer-quizzes',
+    route: QuizAnswerRouters,
   },
 ];
 

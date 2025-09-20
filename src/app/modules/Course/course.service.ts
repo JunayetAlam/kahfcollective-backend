@@ -20,7 +20,7 @@ const createCourse = async (data: Course, userId: string) => {
 };
 
 const getAllCourses = async (query: Record<string, unknown>, role?: UserRoleEnum) => {
-    if (role !== UserRoleEnum.SUPERADMIN) {
+    if (role === UserRoleEnum.USER) {
         query.isDeleted = false;
         query.status = 'ACTIVE';
     }

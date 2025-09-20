@@ -26,6 +26,12 @@ router.post(
 );
 
 router.get('/', auth("ANY"), ForumController.getAllForums);
+router.get(
+  '/join/:forumId',
+  auth('ANY'),
+  ForumController.getAllConnectedUserToForum
+);
+
 router.get('/:id', auth("ANY"), ForumController.getSingleForum);
 
 router.patch(

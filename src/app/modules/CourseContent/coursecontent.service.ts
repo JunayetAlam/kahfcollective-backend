@@ -438,8 +438,65 @@ const getSingleQuizForUser = async (quizId: string, userId: string) => {
 
 // 5. Toggle delete quiz
 const toggleDeleteQuiz = async (id: string, userId: string, role: UserRoleEnum) => {
-    const result = await toggleDelete(id, 'quizzes', role !== 'SUPERADMIN' ? { instructorId: { $oid: userId } } : {});
-    return result;
+    const quiz = await prisma.quiz.findUnique({
+        where: { id },
+        include: { courseContent: true }
+    });
+
+    if (!quiz) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Quiz not found');
+    }
+
+    if (role !== UserRoleEnum.SUPERADMIN && quiz.instructorId !== userId) {
+        throw new AppError(httpStatus.FORBIDDEN, 'Forbidden');
+    }
+
+    if (quiz.isDeleted) {
+        const lastQuiz = await prisma.quiz.findFirst({
+            where: {
+                courseContentId: quiz.courseContentId,
+                isDeleted: false
+            },
+            orderBy: { index: 'desc' }
+        });
+
+        const newIndex = lastQuiz ? lastQuiz.index + 1 : 1;
+
+        return await prisma.quiz.update({
+            where: { id },
+            data: {
+                isDeleted: false,
+                index: newIndex
+            }
+        });
+    } else {
+        return await prisma.$transaction(async (tx) => {
+            await tx.quiz.update({
+                where: { id },
+                data: {
+                    isDeleted: true,
+                    index: 1000
+                }
+            });
+
+            await tx.quiz.updateMany({
+                where: {
+                    courseContentId: quiz.courseContentId,
+                    isDeleted: false,
+                    index: {
+                        gt: quiz.index
+                    }
+                },
+                data: {
+                    index: {
+                        decrement: 1
+                    }
+                }
+            });
+
+            return await tx.quiz.findUnique({ where: { id } });
+        });
+    }
 };
 
 // 6. Change index for course content

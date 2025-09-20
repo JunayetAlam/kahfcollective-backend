@@ -1,0 +1,1 @@
+// Define Post interfaces here

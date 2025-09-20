@@ -79,9 +79,10 @@ const getContentById = async (id: string) => {
 
 // Get all content, ordered by creation date
 const getAllContents = async (query: any) => {
-  const notificationQuery = new QueryBuilder(prisma.content, query);
-  const result = await notificationQuery
-    .search(['name'])
+  query.isDeleted = false
+  const contentQuery = new QueryBuilder(prisma.content, query);
+  const result = await contentQuery
+    .search(['title'])
     .filter()
     .sort()
     .exclude()
@@ -121,7 +122,7 @@ const updateContent = async (
   coverImageFile?: Express.Multer.File,
   contentFile?: Express.Multer.File,
 ) => {
-
+  console.log({ payload })
 
   if (payload.tierId) {
     await tierService.isTierExist(payload.tierId)

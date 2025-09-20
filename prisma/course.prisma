@@ -85,10 +85,13 @@ model Quiz {
 model QuizAnswers {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    quizId    String      @db.ObjectId
-    userId    String      @db.ObjectId
-    answer    RightAnswer
-    isDeleted Boolean     @default(false)
+    quizId      String       @db.ObjectId
+    userId      String       @db.ObjectId
+    answer      RightAnswer
+    rightAnswer RightAnswer?
+    isRight     Boolean?
+    isDeleted   Boolean      @default(false)
+    isLocked    Boolean      @default(false)
 
     quiz Quiz @relation(fields: [quizId], references: [id])
     user User @relation(fields: [userId], references: [id])
@@ -96,6 +99,7 @@ model QuizAnswers {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    @@unique([quizId, userId])
     @@map("quiz_answers")
 }
 

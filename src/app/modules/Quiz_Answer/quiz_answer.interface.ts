@@ -1,0 +1,1 @@
+// Define QuizAnswer interfaces here

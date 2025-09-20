@@ -54,13 +54,10 @@ export const updateContent = catchAsync(async (req, res) => {
   const coverImageFile = (files as any)['thumbnail'] ?? [];
   const contentFile = (files as any)['content'] ?? [];
 
-  const result = await ContentService.updateContent({
-    id,
-    user: req.user,
-    payload: req.body,
-    coverImageFile: coverImageFile[0],
-    contentFile: contentFile[0],
-  });
+  const result = await ContentService.updateContent( id,
+    req.body,
+    coverImageFile[0],
+    contentFile[0]);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -72,9 +69,8 @@ export const updateContent = catchAsync(async (req, res) => {
 // Delete content
 const deleteContent = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const user = req.user as JwtPayload;
 
-  const result = await ContentService.deleteContent(id, user);
+  const result = await ContentService.deleteContent(id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

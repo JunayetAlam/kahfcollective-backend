@@ -260,6 +260,46 @@ const joinForum = async (userId: string, forumId: string) => {
     }
 };
 
+const getAllConnectedUserToForum = async (id: string, userId: string, role: UserRoleEnum, query: Record<string, unknown>) => {
+    if (role === 'USER') {
+        const joinForum = await prisma.joinForum.findUnique({
+            where: {
+                userId_forumId: {
+                    forumId: id,
+                    userId
+                }
+            }
+        });
+
+        if (!joinForum || joinForum.isLeave === true) {
+            throw new AppError(httpStatus.FORBIDDEN, 'Please Join on Discussion First')
+        };
+    }
+    query.forumId = id
+    query.isDeleted = false;
+    query.isLeave = false
+
+    const joinForumQuery = new QueryBuilder<typeof prisma.joinForum>(prisma.joinForum, query);
+    const result = await joinForumQuery
+        .search(['user.fullName'])
+        .filter()
+        .sort()
+        .customFields({
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    profile: true,
+                },
+            },
+        })
+        .exclude()
+        .paginate()
+        .execute()
+    return result
+
+}
+
 export const ForumService = {
     createCircleForum,
     createLocationForum,
@@ -268,5 +308,6 @@ export const ForumService = {
     getSingleForum,
     getAllForums,
     deleteForum,
-    joinForum
+    joinForum,
+    getAllConnectedUserToForum
 };
