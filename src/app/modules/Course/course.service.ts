@@ -5,6 +5,7 @@ import { prisma } from '../../utils/prisma';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { tierService } from '../Tier/tier.service';
 import { toggleDelete } from '../../utils/toggleDelete';
+import { checkSpecificPaidTier } from '../../utils/isBuyTheSpecificTier';
 
 const createCourse = async (data: Course, userId: string) => {
     data.instructorId = userId;
@@ -206,6 +207,7 @@ const isCourseExist = async (id: string) => {
 };
 
 const enrollCourse = async (userId: string, courseId: string,) => {
+
     const isCourseExist = await prisma.course.findUnique({
         where: {
             id: courseId,
@@ -213,10 +215,40 @@ const enrollCourse = async (userId: string, courseId: string,) => {
             NOT: {
                 status: 'HIDDEN'
             }
+        },
+        include: {
+            tier: {
+                select: {
+                    name: true
+                }
+            }
         }
     });
     if (!isCourseExist) {
         throw new AppError(httpStatus.NOT_FOUND, 'Course not found')
+    }
+    await checkSpecificPaidTier(isCourseExist.tierId, isCourseExist.tier.name, userId);
+
+    const isAlreadyEnrolled = await prisma.courseEnroll.findUnique({
+        where: {
+            userId_courseId: {
+                userId,
+                courseId
+            },
+        }
+    });
+    if (isAlreadyEnrolled && isAlreadyEnrolled.isEnrolled === true) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Already enrolled')
+    };
+    if (isAlreadyEnrolled && isAlreadyEnrolled.isEnrolled === false) {
+        return await prisma.courseEnroll.update({
+            where: {
+                id: isAlreadyEnrolled.id,
+            },
+            data: {
+                isEnrolled: true
+            }
+        })
     }
     const result = await prisma.courseEnroll.create({
         data: {

@@ -19,6 +19,11 @@ router.post(
   validateRequest.body(forumValidation.createLocationForum),
   ForumController.createLocationForum
 );
+router.post(
+  '/join/:forumId',
+  auth("USER"),
+  ForumController.joinForum
+);
 
 router.get('/', auth("ANY"), ForumController.getAllForums);
 router.get('/:id', auth("ANY"), ForumController.getSingleForum);

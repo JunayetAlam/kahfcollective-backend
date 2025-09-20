@@ -35,7 +35,7 @@ model CourseEnroll {
     updatedAt DateTime @updatedAt
 
     @@unique([userId, courseId])
-    @@map("course")
+    @@map("course_enrolls")
 }
 
 model CourseContents {

@@ -76,6 +76,16 @@ const deleteForum = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const joinForum = catchAsync(async (req, res) => {
+  const { forumId } = req.params;
+  const result = await ForumService.joinForum(req.user.id,forumId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Joined on Discussion Perfectly',
+    data: result,
+  });
+});
 
 export const ForumController = {
   createCircleForum,
@@ -85,4 +95,5 @@ export const ForumController = {
   getSingleForum,
   getAllForums,
   deleteForum,
+  joinForum
 };

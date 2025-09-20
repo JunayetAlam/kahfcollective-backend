@@ -11,7 +11,7 @@ model Forum {
 
     events     Events[]
     posts      Post[]
-    userForums UserForum[]
+    joinForums JoinForum[]
 
     course Course? @relation(fields: [courseId], references: [id])
     tier   Tier?   @relation(fields: [tierId], references: [id])
@@ -22,7 +22,7 @@ model Forum {
     @@map("forums")
 }
 
-model UserForum {
+model JoinForum {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     userId    String  @db.ObjectId
@@ -40,7 +40,7 @@ model UserForum {
     updatedAt DateTime @updatedAt
 
     @@unique([userId, forumId])
-    @@map("user_forums")
+    @@map("join_forum")
 }
 
 enum ForumTypeEnum {

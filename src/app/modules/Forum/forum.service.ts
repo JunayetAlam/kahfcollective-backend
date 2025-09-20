@@ -5,6 +5,7 @@ import AppError from '../../errors/AppError';
 import { tierService } from '../Tier/tier.service';
 import crypto from 'crypto';
 import QueryBuilder from '../../builder/QueryBuilder';
+import { checkSpecificPaidTier } from '../../utils/isBuyTheSpecificTier';
 
 const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId'>) => {
     const isCourseId = await prisma.course.findUnique({
@@ -98,17 +99,26 @@ const updateLocationForum = async (
 };
 
 const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) => {
+
+    if (role === 'USER') {
+        const joinForum = await prisma.joinForum.findUnique({
+            where: {
+                userId_forumId: {
+                    forumId: id,
+                    userId
+                }
+            }
+        });
+
+        if (!joinForum || joinForum.isLeave === true) {
+            throw new AppError(httpStatus.FORBIDDEN, 'Please Join on Discussion First')
+        };
+    }
+
+
     const forum = await prisma.forum.findUnique({
         where: {
             id,
-            ...(role !== 'SUPERADMIN' && {
-                userForums: {
-                    some: {
-                        userId: userId
-                    }
-                }
-            })
-
         },
         select: {
             id: true,
@@ -129,7 +139,7 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
                     name: true
                 }
             },
-            userForums: {
+            joinForums: {
                 select: {
                     id: true,
                     userId: true,
@@ -195,6 +205,61 @@ const deleteForum = async (forumId: string) => {
     return { message: 'Forum deleted successfully' };
 };
 
+const joinForum = async (userId: string, forumId: string) => {
+    const isForumExist = await prisma.forum.findUnique({
+        where: {
+            id: forumId,
+            isDeleted: false,
+        },
+        select: {
+            tier: {
+                select: {
+                    id: true,
+                    name: true,
+                }
+            },
+        }
+    });
+    if (!isForumExist) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Forum not found')
+    };
+    if (!isForumExist.tier) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
+    }
+    await checkSpecificPaidTier(isForumExist.tier.id, isForumExist.tier.name, userId);
+
+    const isAlreadyJoined = await prisma.joinForum.findUnique({
+        where: {
+            userId_forumId: {
+                userId,
+                forumId
+            }
+        },
+        select: {
+            isLeave: true,
+            id: true,
+        }
+    });
+    if (isAlreadyJoined && isAlreadyJoined.isLeave === false) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Already joined')
+    };
+    if (isAlreadyJoined && isAlreadyJoined.isLeave === true) {
+        return await prisma.joinForum.update({
+            where: {
+                id: isAlreadyJoined.id
+            },
+            data: { isLeave: false }
+        })
+    } else {
+        return await prisma.joinForum.create({
+            data: {
+                forumId,
+                userId
+            }
+        })
+    }
+};
+
 export const ForumService = {
     createCircleForum,
     createLocationForum,
@@ -202,5 +267,6 @@ export const ForumService = {
     updateLocationForum,
     getSingleForum,
     getAllForums,
-    deleteForum
+    deleteForum,
+    joinForum
 };
