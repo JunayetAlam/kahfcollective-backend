@@ -20,7 +20,7 @@ app.use(
     origin: [
       "http://localhost:3001",
       "http://localhost:3000",
-      "http://saifghori.code-commando.com",
+      "https://saifghori.code-commando.com",
       "http://206.162.244.139:3005",
     ],
     credentials: true,
