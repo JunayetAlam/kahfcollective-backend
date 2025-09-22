@@ -16,12 +16,6 @@ const ansQuiz = async (userId: string, payload: QuizAnswers) => {
                     course: {
                         select: {
                             id: true,
-                            coursesEnroll: {
-                                where: {
-                                    userId,
-                                    isEnrolled: true
-                                }
-                            },
                         }
                     },
 
@@ -41,9 +35,6 @@ const ansQuiz = async (userId: string, payload: QuizAnswers) => {
     if (!isQuizExist.courseContent.course) {
         throw new AppError(httpStatus.NOT_FOUND, 'Course Not Found')
     };
-    if (isQuizExist.courseContent.course.coursesEnroll.length === 0) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'You are not enrolled on the course')
-    }
 
     if (isQuizExist.index > 1) {
         const isPreviousAnswers = await prisma.quizAnswers.findFirst({
@@ -218,7 +209,13 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
         }
     });
 
+    const notAnsweredQues = userAnswers.find(item => item.isLocked === false);
+    if (content.quizzes.length !== userAnswers.length || notAnsweredQues) {
+        return { isAllAnswered: false }
+    }
+
     const result = {
+        isAllAnswered: true,
         total: content.quizzes.length,
         correct: userAnswers.filter(a => a.isRight).length,
         incorrect: userAnswers.filter(a => !a.isRight).length,
@@ -240,11 +237,13 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
     return result;
 };
 
-const getSingleQuizWithUserAnswer = async (userId: string, quizAnswerId: string) => {
+const getSingleQuizWithUserAnswer = async (userId: string, quizId: string) => {
     const quizAnswers = await prisma.quizAnswers.findUnique({
         where: {
-            id: quizAnswerId,
-            userId,
+            quizId_userId: {
+                quizId,
+                userId,
+            }
 
         },
         select: {
@@ -253,17 +252,18 @@ const getSingleQuizWithUserAnswer = async (userId: string, quizAnswerId: string)
             isRight: true,
             rightAnswer: true,
             answer: true,
-            quizId: true
+            quizId: true,
         }
     });
     if (!quizAnswers) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Quiz Answer not found')
+        return {}
     }
 
     return {
         id: quizAnswers?.id,
         answer: quizAnswers?.answer,
         quizId: quizAnswers?.quizId,
+        isLocked: quizAnswers?.isLocked,
         ...(quizAnswers?.isLocked && {
             isRight: quizAnswers.isRight,
             rightAnswer: quizAnswers.rightAnswer
@@ -271,6 +271,8 @@ const getSingleQuizWithUserAnswer = async (userId: string, quizAnswerId: string)
     }
 
 };
+
+
 
 export const QuizAnswerService = {
     ansQuiz,

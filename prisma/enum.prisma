@@ -1,7 +1,6 @@
 enum GenderEnum {
     MALE
     FEMALE
-    RATHERNOTSAY
 }
 
 

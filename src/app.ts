@@ -7,7 +7,8 @@ import path from 'path';
 import { StripeWebHook } from "./app/utils/StripeUtils";
 import { html } from "./htmldesign";
 const app: Application = express();
-
+import cron from "node-cron";
+import { UserServices } from "./app/modules/User/user.service";
 app.post(
   "/api/v1/payments/webhooks",
   express.raw({ type: "application/json" }),
@@ -35,7 +36,9 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1", router);
-
+cron.schedule("0 0 * * *", () => {
+  UserServices.expireUserMonthlySubscription();
+});
 app.use(globalErrorHandler);
 app.use('/upload', express.static(path.join(__dirname, 'app', 'upload')));
 app.use((req: Request, res: Response, next: NextFunction) => {

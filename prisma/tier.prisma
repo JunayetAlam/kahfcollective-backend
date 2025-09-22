@@ -2,23 +2,31 @@ model Tier {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     name   String   @unique
-    price  Float
-    points String[]
 
-    isHide        Boolean @default(false)
-    isMostPopular Boolean @default(false)
     isDeleted     Boolean @default(false)
 
-    stripePriceId   String @unique
-    stripeProductId String
 
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    // products  Product[]
-    payments  Payment[]
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
     contents  Content[]
     forums    Forum[]
-    courses Course[]
+    userTiers UserTier[]
 
     @@map("tiers")
+}
+
+model UserTier {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    tierId String @db.ObjectId
+    userId String @db.ObjectId
+
+    tier Tier @relation(fields: [tierId], references: [id])
+    user User @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([tierId, userId])
+    @@map("user_tier")
 }

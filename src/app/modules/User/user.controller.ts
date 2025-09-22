@@ -88,16 +88,17 @@ const updateUserStatus = catchAsync(async (req, res) => {
     data: result,
   });
 });
-const getMyStudents = catchAsync(async (req, res) => {
-
-  const result = await UserServices.getMyStudents(req.user.id,req?.query?.courseId as string || undefined);
+const toggleIsUserVerified = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await UserServices.toggleIsUserVerified(id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Student retrieved successfully',
+    message: 'User verifyStatus Update successfully',
     data: result,
   });
 });
+
 
 export const UserControllers = {
   getAllUsers,
@@ -107,5 +108,5 @@ export const UserControllers = {
   updateProfileImage,
   updateUserRoleStatus,
   updateUserStatus,
-  getMyStudents
+  toggleIsUserVerified
 };

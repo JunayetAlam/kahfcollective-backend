@@ -5,18 +5,44 @@ import { prisma } from '../../utils/prisma';
 import { deleteFile, uploadSingleFile } from '../../utils/uploadFiles';
 import { Request } from 'express';
 import AppError from '../../errors/AppError';
+import { deleteFromDigitalOceanAWS, uploadToDigitalOceanAWS } from '../../utils/uploadToDigitalOceanAWS';
 
-
-interface UserWithOptionalPassword extends Omit<User, 'password'> {
-  password?: string;
-}
 const getAllUsersFromDB = async (query: any) => {
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
   const result = await usersQuery
     .search(['fullName', 'email'])
     .filter()
     .sort()
-    .fields()
+    .customFields({
+      id: true,
+      address: true,
+      fullName: true,
+      email: true,
+      profile: true,
+      gender: true,
+      phoneNumber: true,
+      majorOrProfession: true,
+      role: true,
+      coursesName: true,
+      isTakeCourseWithSheikh: true,
+      isReferredBySheikhSalmam: true,
+      howLongInCourse: true,
+      haveTakenCoursesBefore: true,
+      introduction: true,
+      status: true,
+      referredBy: true,
+      isUserVerified: true,
+      userTiers: {
+        select: {
+          tier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    })
     .exclude()
     .paginate()
     .execute();
@@ -29,6 +55,36 @@ const getMyProfileFromDB = async (id: string) => {
     where: {
       id: id,
     },
+    select: {
+      id: true,
+      address: true,
+      fullName: true,
+      email: true,
+      profile: true,
+      gender: true,
+      phoneNumber: true,
+      majorOrProfession: true,
+      role: true,
+      coursesName: true,
+      isTakeCourseWithSheikh: true,
+      isReferredBySheikhSalmam: true,
+      howLongInCourse: true,
+      haveTakenCoursesBefore: true,
+      introduction: true,
+      isUserVerified: true,
+      status: true,
+      referredBy: true,
+      userTiers: {
+        select: {
+          tier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
   });
 
   return Profile;
@@ -39,31 +95,53 @@ const getUserDetailsFromDB = async (id: string) => {
     where: { id },
     select: {
       id: true,
+      address: true,
       fullName: true,
       email: true,
+      profile: true,
+      gender: true,
+      phoneNumber: true,
+      majorOrProfession: true,
       role: true,
-      createdAt: true,
-      updatedAt: true,
-      profile: true
-    },
-  });
+      coursesName: true,
+      isTakeCourseWithSheikh: true,
+      isReferredBySheikhSalmam: true,
+      referredBy: true,
+      howLongInCourse: true,
+      haveTakenCoursesBefore: true,
+      isUserVerified: true,
+      introduction: true,
+      status: true,
+      userTiers: {
+        select: {
+          tier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  })
+
   return user;
 };
 
 const updateProfileImg = async (id: string, previousImg: string, req: Request, file: Express.Multer.File | undefined) => {
 
   if (file) {
-    const location = uploadSingleFile(file)
+    const { Location } = await uploadToDigitalOceanAWS(file)
     const result = await prisma.user.update({
       where: {
         id
       },
       data: {
-        profile: location
+        profile: Location
       }
     });
     if (previousImg) {
-      deleteFile(previousImg)
+      deleteFromDigitalOceanAWS(previousImg)
     }
     req.user.profile = location;
     return result
@@ -129,48 +207,36 @@ const isUserExist = async (id: string) => {
   return user
 }
 
-const getMyStudents = async (userId: string, courseId?: string) => {
-  return await prisma.user.findMany({
+const toggleIsUserVerified = async (id: string) => {
+
+  const result = await prisma.$runCommandRaw({
+    update: "users",
+    updates: [
+      {
+        q: { _id: { $oid: id } },
+        u: [{ $set: { isUserVerified: { $not: "$isUserVerified" } } }],
+      },
+    ],
+    ordered: true,
+  });
+  return result
+};
+
+const expireUserMonthlySubscription = async () => {
+  const now = new Date();
+  return await prisma.user.updateMany({
     where: {
-      role: 'USER',
-      coursesEnroll: {
-        some: {
-          course: {
-            instructorId: userId,
-            ...(courseId && { id: courseId })
-          },
-          isEnrolled: true
-        },
-
-      },
+      expireIn: { lte: now },
+      status: "ACTIVE",
+      role: "USER",
     },
-    select: {
-      id: true,
-      fullName: true,
-      profile: true,
-      email: true,
-      coursesEnroll: {
-        where: {
-          isEnrolled: true,
-          course: {
-            instructorId: userId
-          }
-        },
-        select: {
-          id: true,
-          courseId: true,
-          userId: true,
-          course: {
-            select: {
-              title: true,
-            }
-          }
-        }
-      },
+    data: {
+      isUserVerified: false,
+    },
+  });
+};
 
-    }
-  })
-}
+
 
 
 
@@ -183,5 +249,6 @@ export const UserServices = {
   updateProfileStatus,
   updateProfileImg,
   isUserExist,
-  getMyStudents
+  toggleIsUserVerified,
+  expireUserMonthlySubscription
 };

@@ -78,8 +78,36 @@ const getContentById = async (id: string) => {
 };
 
 // Get all content, ordered by creation date
-const getAllContents = async (query: any) => {
+const getAllContents = async (query: any, role: UserRoleEnum, userId: string) => {
   query.isDeleted = false
+
+  if (query.isFeatured) {
+    if (query.isFeatured === 'true') {
+      query.isFeatured = true
+    }
+    else if (query.isFeatured === 'false') {
+      query.isFeatured = false
+    }
+    else {
+      delete query.isFeatured
+    }
+  }
+  if (role === 'USER') {
+    const UserAllTier = await prisma.userTier.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        tierId: true
+      }
+    });
+    const tierIds = UserAllTier.map(item => item.tierId);
+    query.tierId = {
+      in: tierIds
+    }
+  };
+
   const contentQuery = new QueryBuilder(prisma.content, query);
   const result = await contentQuery
     .search(['title'])
@@ -106,6 +134,7 @@ const getAllContents = async (query: any) => {
       contentType: true,
       coverImage: true,
       createdAt: true,
+      isFeatured: true,
       fileLink: true,
       id: true,
       title: true,
@@ -122,7 +151,6 @@ const updateContent = async (
   coverImageFile?: Express.Multer.File,
   contentFile?: Express.Multer.File,
 ) => {
-  console.log({ payload })
 
   if (payload.tierId) {
     await tierService.isTierExist(payload.tierId)
@@ -163,10 +191,47 @@ const deleteContent = async (id: string) => {
   return { message: 'Content deleted successfully' };
 };
 
+const toggleIsFeatured = async (id: string) => {
+  // First, get the current state of the item
+  const currentItem = await prisma.content.findUnique({
+    where: { id, }
+  });
+
+  if (!currentItem) {
+    throw new Error("Item not found");
+  }
+
+  if (!currentItem.isFeatured) {
+    await prisma.content.updateMany({
+      where: {
+        id: { not: id },
+        isFeatured: true,
+        contentType: currentItem.contentType
+      },
+      data: {
+        isFeatured: false
+      }
+    });
+  }
+
+  // Then toggle the current item's isFeatured status
+  const result = await prisma.content.update({
+    where: {
+      id: id
+    },
+    data: {
+      isFeatured: currentItem.isFeatured ? false : true
+    }
+  })
+
+  return result;
+};
+
 export const ContentService = {
   createContent,
   getContentById,
   getAllContents,
   updateContent,
   deleteContent,
+  toggleIsFeatured
 };

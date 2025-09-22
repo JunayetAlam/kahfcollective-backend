@@ -4,45 +4,12 @@ import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { toggleDelete } from '../../utils/toggleDelete';
+import { checkForumAndTierEnrolled } from '../../utils/checkForumAndTierEnrolled';
 
-const needsValidation = (role: UserRoleEnum) => {
-    return role === 'USER';
-};
-
-const checkForumMembership = async (userId: string, forumId: string, role: UserRoleEnum) => {
-    if (!needsValidation(role)) {
-        return;
-    }
-
-    const joinForum = await prisma.joinForum.findUnique({
-        where: {
-            userId_forumId: {
-                userId,
-                forumId
-            },
-            isLeave: false
-        },
-        select: {
-            forum: {
-                select: {
-                    id: true
-                }
-            }
-        }
-    });
-
-    if (!joinForum) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Please join Discussion First');
-    }
-
-    if (!joinForum.forum) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Forum Not found');
-    }
-};
 
 const createPost = async (userId: string, forumId: string, payload: Pick<Post, 'message'>, role: UserRoleEnum) => {
     // Check forum membership only for regular users
-    await checkForumMembership(userId, forumId, role);
+    await checkForumAndTierEnrolled(userId, forumId, role);
 
     return await prisma.post.create({
         data: {
@@ -54,7 +21,6 @@ const createPost = async (userId: string, forumId: string, payload: Pick<Post, '
 };
 
 const replyToPost = async (userId: string, postId: string, payload: Pick<Reply, 'message'>, role: UserRoleEnum) => {
-    // Check if post exists
     const post = await prisma.post.findUnique({
         where: {
             id: postId,
@@ -70,57 +36,17 @@ const replyToPost = async (userId: string, postId: string, payload: Pick<Reply, 
         throw new AppError(httpStatus.NOT_FOUND, 'Post Not Found');
     }
 
-    let joinForumId = null;
-
-    if (needsValidation(role)) {
-        // For regular users, check forum membership
-        const joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: post.forumId
-                },
-                isLeave: false
-            },
-        });
-
-        if (!joinForum) {
-            throw new AppError(httpStatus.BAD_REQUEST, 'Please join Discussion First');
-        }
-
-        joinForumId = joinForum.id;
-    } else {
-        // For INSTRUCTOR and SUPERADMIN, create or find joinForum entry if it doesn't exist
-        let joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: post.forumId
-                }
-            },
-        });
-
-        if (!joinForum) {
-            joinForum = await prisma.joinForum.create({
-                data: {
-                    userId,
-                    forumId: post.forumId,
-                    isLeave: false
-                }
-            });
-        }
-
-        joinForumId = joinForum.id;
-    }
+    await checkForumAndTierEnrolled(userId, post.forumId, role)
 
     return await prisma.reply.create({
         data: {
             forumId: post.forumId,
             message: payload.message,
-            joinForumId,
             postId,
         }
     });
+
+
 };
 
 const replyToReply = async (userId: string, parentReplyId: string, payload: Pick<Reply, 'message'>, role: UserRoleEnum) => {
@@ -140,55 +66,12 @@ const replyToReply = async (userId: string, parentReplyId: string, payload: Pick
     if (!parentReply) {
         throw new AppError(httpStatus.NOT_FOUND, 'Parent Reply Not Found');
     }
-
-    let joinForumId = null;
-
-    if (needsValidation(role)) {
-        // For regular users, check forum membership
-        const joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: parentReply.forumId
-                },
-                isLeave: false
-            },
-        });
-
-        if (!joinForum) {
-            throw new AppError(httpStatus.BAD_REQUEST, 'Please join Discussion First');
-        }
-
-        joinForumId = joinForum.id;
-    } else {
-        // For INSTRUCTOR and SUPERADMIN, create or find joinForum entry if it doesn't exist
-        let joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: parentReply.forumId
-                }
-            },
-        });
-
-        if (!joinForum) {
-            joinForum = await prisma.joinForum.create({
-                data: {
-                    userId,
-                    forumId: parentReply.forumId,
-                    isLeave: false
-                }
-            });
-        }
-
-        joinForumId = joinForum.id;
-    }
+    await checkForumAndTierEnrolled(userId, parentReply.forumId, role)
 
     return await prisma.reply.create({
         data: {
             forumId: parentReply.forumId,
             message: payload.message,
-            joinForumId,
             postId: parentReply.postId,
             parentReplyId: parentReplyId,
         }
@@ -212,56 +95,12 @@ const giveReact = async (userId: string, postId: string, role: UserRoleEnum) => 
     if (!post) {
         throw new AppError(httpStatus.NOT_FOUND, 'Post Not Found');
     }
-
-    let joinForumId = null;
-
-    if (needsValidation(role)) {
-        // For regular users, check forum membership
-        const joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: post.forumId
-                },
-                isLeave: false
-            },
-        });
-
-        if (!joinForum) {
-            throw new AppError(httpStatus.BAD_REQUEST, 'Please join Discussion First');
-        }
-
-        joinForumId = joinForum.id;
-    } else {
-        // For INSTRUCTOR and SUPERADMIN, create or find joinForum entry if it doesn't exist
-        let joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    userId,
-                    forumId: post.forumId
-                }
-            },
-        });
-
-        if (!joinForum) {
-            joinForum = await prisma.joinForum.create({
-                data: {
-                    userId,
-                    forumId: post.forumId,
-                    isLeave: false
-                }
-            });
-        }
-
-        joinForumId = joinForum.id;
-    }
-
-    // Check if user already reacted to this post
+    await checkForumAndTierEnrolled(userId, post.forumId, role)
     const existingReact = await prisma.react.findUnique({
         where: {
-            joinForumId_postId: {
-                joinForumId,
-                postId
+            postId_userId: {
+                postId,
+                userId
             }
         }
     });
@@ -280,14 +119,15 @@ const giveReact = async (userId: string, postId: string, role: UserRoleEnum) => 
         // Add react
         return await prisma.react.create({
             data: {
-                joinForumId: joinForumId,
                 postId: postId,
+                userId
             }
         });
     }
+
 };
 
-const getAllPostForSpecificForum = async (forumId: string, query: any, role: UserRoleEnum) => {
+const getAllPostForSpecificForum = async (forumId: string, query: any, role: UserRoleEnum, userId: string) => {
     // Check if forum exists
     const forum = await prisma.forum.findUnique({
         where: {
@@ -344,10 +184,15 @@ const getAllPostForSpecificForum = async (forumId: string, query: any, role: Use
                     fullName: true,
                     profile: true
                 }
+            },
+            reacts: {
+                where: {
+                    userId,
+                    isDeleted: false
+                }
             }
         })
         .execute();
-
     return result;
 };
 const getAllPost = async (query: any) => {
@@ -432,8 +277,8 @@ const getAllReplyForSpecificPost = async (postId: string, query: any) => {
             createdAt: true,
             updatedAt: true,
             parentReplyId: true,
-            joinForum: {
-                include: {
+            post: {
+                select: {
                     user: {
                         select: {
                             id: true,
@@ -449,7 +294,7 @@ const getAllReplyForSpecificPost = async (postId: string, query: any) => {
     return result;
 };
 
-const getAllReactForPost = async (postId: string, query: any) => {
+const getAllReactForPost = async (postId: string, query: any,) => {
     // Check if post exists
     const post = await prisma.post.findUnique({
         where: {
@@ -481,15 +326,11 @@ const getAllReactForPost = async (postId: string, query: any) => {
         .customFields({
             id: true,
             updatedAt: true,
-            joinForum: {
+            user: {
                 select: {
-                    user: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            profile: true
-                        }
-                    }
+                    id: true,
+                    fullName: true,
+                    profile: true
                 }
             }
         })

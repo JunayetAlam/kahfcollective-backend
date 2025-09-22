@@ -46,5 +46,11 @@ router.delete(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   ContentControllers.deleteContent,
 );
+// Delete content
+router.put(
+  '/toggle-feature/:id',
+  auth('SUPERADMIN'),
+  ContentControllers.toggleIsFeatured,
+);
 
 export const ContentRouters = router;

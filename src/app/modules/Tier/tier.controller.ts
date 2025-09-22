@@ -58,28 +58,18 @@ const toggleDeleteTier = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const toggleAssignTier = catchAsync(async (req, res) => {
+  const { userId, tierId } = req.body;
 
-const toggleHideTier = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const result = await tierService.toggleHideTier(id);
+  const result = await tierService.toggleAssignTier(userId, tierId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Tier hide status toggled successfully',
+    message: 'Tier delete status toggled successfully',
     data: result,
   });
 });
 
-const togglePopularTier = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const result = await tierService.togglePopularTier(id);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Tier popular status toggled successfully',
-    data: result,
-  });
-});
 
 export const tierController = {
   createTier,
@@ -87,6 +77,5 @@ export const tierController = {
   getTierById,
   updateTier,
   toggleDeleteTier,
-  toggleHideTier,
-  togglePopularTier,
+  toggleAssignTier,
 };

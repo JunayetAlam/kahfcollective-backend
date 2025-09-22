@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import config from '../../config';
 import { prisma } from './prisma';
 import { stripe } from './stripe';
+import { PaymentType } from '@prisma/client';
 
 
 
@@ -81,20 +82,27 @@ const StripeHook = async (rawBody: Buffer, signature: string | string[] | undefi
 
 };
 
-export const checkout = async (data: { stripePriceId: string, email: string, paymentId: string }) => {
+export const checkout = async (data: { amount: number, email: string, paymentId: string, paymentType: PaymentType }) => {
     const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
+        mode: "payment",
         success_url: `${config.base_url_client}/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${config.base_url_client}/checkout/cancel?paymentId=${data.paymentId}`,
         line_items: [
             {
-                price: data.stripePriceId,
+                price_data: {
+                    currency: "usd",
+                    product_data: {
+                        name: "Custom Payment",
+                    },
+                    unit_amount: data.amount * 100,
+                },
                 quantity: 1,
             },
         ],
         customer_email: data.email,
         metadata: {
             paymentId: data.paymentId,
+            paymentType: data.paymentType
         },
     });
 
@@ -103,6 +111,7 @@ export const checkout = async (data: { stripePriceId: string, email: string, pay
 
 const handleCheckoutSessionCompleted = async (session: Stripe.Checkout.Session) => {
     const paymentId = session.metadata?.paymentId;
+    const paymentType = session.metadata?.paymentType;
     if (!paymentId) return;
 
     const stripePaymentId = session.payment_intent as string;
@@ -118,6 +127,7 @@ const handleCheckoutSessionCompleted = async (session: Stripe.Checkout.Session) 
         ? charge.payment_method_details.card
         : undefined;
 
+
     await prisma.payment.update({
         where: { id: paymentId },
         data: {
@@ -130,6 +140,13 @@ const handleCheckoutSessionCompleted = async (session: Stripe.Checkout.Session) 
             cardLast4: card?.last4,
             cardExpMonth: card?.exp_month,
             cardExpYear: card?.exp_year,
+            ...(paymentType === "PURCHASE" && {
+                user: {
+                    update: {
+                        expireIn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                    }
+                }
+            })
         },
     });
 

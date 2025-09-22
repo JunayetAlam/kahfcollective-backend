@@ -1,7 +1,7 @@
 model Payment {
-    id        String @id @default(auto()) @map("_id") @db.ObjectId
-    userId    String @db.ObjectId
-    tierId    String @db.ObjectId
+    id          String      @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String      @db.ObjectId
+    paymentType PaymentType
 
     amount   Float
     currency Currency      @default(usd)
@@ -18,11 +18,9 @@ model Payment {
     stripeCustomerId String?
 
     user      User     @relation(fields: [userId], references: [id])
-    tier      Tier     @relation(fields: [tierId], references: [id])
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@unique([userId, tierId])
     @@map("payments")
 }
 
@@ -31,4 +29,9 @@ enum PaymentStatus {
     SUCCESS
     FAILED
     CANCELED
+}
+
+enum PaymentType {
+    DONATION
+    PURCHASE
 }

@@ -28,7 +28,6 @@ export const uploadToDigitalOceanAWS = async (
   file: Express.Multer.File,
 ): Promise<UploadResponse> => {
   try {
-    console.log(file);
 
     if (!file || !file.originalname) {
       throw new Error('No file provided or missing originalname');

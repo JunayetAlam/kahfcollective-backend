@@ -24,10 +24,9 @@ const createPost = catchAsync(async (req: Request, res) => {
 const replyToPost = catchAsync(async (req: Request, res) => {
   const userId = req.user.id;
   const role = req.user.role;
-  const { postId } = req.params;
+  const hello = req.params;
   const payload = req.body;
-
-  const result = await PostService.replyToPost(userId, postId, payload, role);
+  const result = await PostService.replyToPost(userId, hello.postId, payload, role);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -71,7 +70,7 @@ const giveReact = catchAsync(async (req: Request, res) => {
 const getAllPostForSpecificForum = catchAsync(async (req: Request, res) => {
   const { forumId } = req.params;
 
-  const result = await PostService.getAllPostForSpecificForum(forumId, req.query, req.user.role);
+  const result = await PostService.getAllPostForSpecificForum(forumId, req.query, req.user.role, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

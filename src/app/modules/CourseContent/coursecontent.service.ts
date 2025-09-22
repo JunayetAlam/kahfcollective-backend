@@ -4,38 +4,6 @@ import { CourseContents, Quiz, UserRoleEnum } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import { deleteFromDigitalOceanAWS, uploadToDigitalOceanAWS } from '../../utils/uploadToDigitalOceanAWS';
 import { toggleDelete } from '../../utils/toggleDelete';
-import { checkSpecificPaidTier } from '../../utils/isBuyTheSpecificTier';
-
-const isUserEnrolled = async (courseId: string, userId: string) => {
-    const isCourseExist = await prisma.course.findUnique({
-        where: {
-            id: courseId
-        },
-        select: {
-            coursesEnroll: {
-                where: {
-                    userId
-                },
-                select: {
-                    isEnrolled: true,
-                    id: true,
-                }
-            },
-            tierId: true,
-            tier: {
-                select: {
-                    name: true
-                }
-            }
-        }
-    });
-
-    if (!isCourseExist?.coursesEnroll.find(item => item.isEnrolled === true)?.isEnrolled) {
-        throw new AppError(httpStatus.FORBIDDEN, 'You do not enroll on the course')
-    }
-    return isCourseExist
-}
-
 
 
 const checkSuperAdmin = (role: UserRoleEnum, userId: string) => {
@@ -46,7 +14,7 @@ const checkSuperAdmin = (role: UserRoleEnum, userId: string) => {
         }
     }
     else {
-        return {isDeleted: false,}
+        return { isDeleted: false, }
     }
 }
 
@@ -165,7 +133,6 @@ const createQuizContent = async (payload: Pick<CourseContents, 'courseId' | 'tit
 }
 
 const updateContent = async (id: string, payload: Partial<Pick<CourseContents, 'description' | 'title' | 'status'>>, userId: string, role: UserRoleEnum) => {
-    console.log(payload)
     const result = await prisma.courseContents.update({
         where: {
             id,
@@ -183,7 +150,13 @@ const toggleDeleteContent = async (id: string, userId: string, role: UserRoleEnu
 }
 
 const createQuiz = async (payload: Quiz, userId: string, role: UserRoleEnum) => {
+    const quizOptions = payload.options
+    const values = Object.values(quizOptions);
+    const hasDuplicates = new Set(values).size !== values.length;
 
+    if (hasDuplicates) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Quiz options must all be different.')
+    }
     const isCourseContentExist = await prisma.courseContents.findUnique({
         where: {
             id: payload.courseContentId,
@@ -221,6 +194,15 @@ const updateQuiz = async (
     userId: string,
     role: UserRoleEnum
 ) => {
+    const quizOptions = payload?.options
+    if (quizOptions) {
+        const values = Object.values(quizOptions);
+        const hasDuplicates = new Set(values).size !== values.length;
+
+        if (hasDuplicates) {
+            throw new AppError(httpStatus.BAD_REQUEST, 'Quiz options must all be different.')
+        }
+    }
     const result = await prisma.quiz.update({
         where: {
             id,
@@ -254,8 +236,6 @@ const getAllContentForSpecificCourse = async (courseId: string, userId: string, 
 // 1a. Get all content for a specific course (for normal users)
 const getAllContentForSpecificCourseForUser = async (courseId: string, userId: string) => {
 
-    const course = await isUserEnrolled(courseId, userId)
-    await checkSpecificPaidTier(course.tierId, course.tier.name, userId)
 
 
     const contents = await prisma.courseContents.findMany({
@@ -324,17 +304,12 @@ const getSingleContentForUser = async (contentId: string, userId: string) => {
     if (!content) {
         throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
     }
-    const course = await isUserEnrolled(content.courseId, userId)
-    await checkSpecificPaidTier(course.tierId, course.tier.name, userId)
-    // Additional check: verify user has access to this content's course
-    // You might want to add enrollment check here
 
     return content;
 };
 
 // 3. Get all quiz for a specific course content (for owners/superadmins)
 const getAllQuizForSpecificCourseContent = async (courseContentId: string, userId: string, role: UserRoleEnum) => {
-    console.log(courseContentId, userId, role)
     const isCourseContentExist = await prisma.courseContents.findUnique({
         where: {
             id: courseContentId,
@@ -372,8 +347,6 @@ const getAllQuizForSpecificCourseContentForUser = async (courseContentId: string
     if (!isCourseContentExist) {
         throw new AppError(httpStatus.NOT_FOUND, 'Course Content not found');
     }
-    const course = await isUserEnrolled(isCourseContentExist.courseId, userId)
-    await checkSpecificPaidTier(course.tierId, course.tier.name, userId)
 
     const quizzes = await prisma.quiz.findMany({
         where: {
@@ -433,8 +406,6 @@ const getSingleQuizForUser = async (quizId: string, userId: string) => {
         throw new AppError(httpStatus.NOT_FOUND, 'Quiz not found');
     }
 
-    const course = await isUserEnrolled(quiz.courseContent.courseId, userId)
-    await checkSpecificPaidTier(course.tierId, course.tier.name, userId)
     return quiz;
 };
 

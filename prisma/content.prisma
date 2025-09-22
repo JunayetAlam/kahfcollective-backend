@@ -5,6 +5,7 @@ model Content {
     description String
     fileLink    String?
     coverImage  String?
+    isFeatured  Boolean?
 
     isDeleted Boolean @default(false)
 

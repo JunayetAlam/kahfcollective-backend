@@ -12,7 +12,6 @@ model Forum {
 
     events     Events[]
     posts      Post[]
-    joinForums JoinForum[]
 
     course Course? @relation(fields: [courseId], references: [id])
     tier   Tier?   @relation(fields: [tierId], references: [id])
@@ -21,27 +20,6 @@ model Forum {
     updatedAt DateTime @updatedAt
 
     @@map("forums")
-}
-
-model JoinForum {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
-
-    userId    String  @db.ObjectId
-    forumId   String  @db.ObjectId
-    isLeave   Boolean @default(false)
-    isDeleted Boolean @default(false)
-
-    user  User  @relation(fields: [userId], references: [id])
-    forum Forum @relation(fields: [forumId], references: [id])
-
-    replies Reply[]
-    reacts  React[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([userId, forumId])
-    @@map("join_forum")
 }
 
 enum ForumTypeEnum {

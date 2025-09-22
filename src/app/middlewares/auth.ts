@@ -17,7 +17,7 @@ type TupleHasDuplicate<T extends readonly unknown[]> =
 type NoDuplicates<T extends readonly unknown[]> =
   TupleHasDuplicate<T> extends true ? never : T;
 
-const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED')[]>(
+const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_CHECK_ADMIN_VERIFICATION')[]>(
   ...roles: NoDuplicates<T> extends never ? never : T
 ) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -53,6 +53,14 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED')[]>(
       if (!user.isEmailVerified) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not verified!');
       }
+      if (!roles.includes('NOT_CHECK_ADMIN_VERIFICATION')) {
+        if (user.role === 'USER') {
+          if (!user.isUserVerified) {
+            throw new AppError(httpStatus.UNAUTHORIZED, 'You are not verified by Admin!');
+          }
+        }
+      }
+
       if (user.status === 'BLOCKED') {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are Blocked!');
       }

@@ -15,9 +15,10 @@ const createCourse = catchAsync(async (req, res) => {
 });
 
 const getAllCourses = catchAsync(async (req, res) => {
-  const query = req.query;
+  const query = req.query as Record<string, unknown>;
   const role = req?.user?.role;
-  const result = await CourseService.getAllCourses(query, role);
+  const userId = req?.user?.id;
+  const result = await CourseService.getAllCourses({ query, role, userId });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -29,7 +30,8 @@ const getAllCourses = catchAsync(async (req, res) => {
 const getCourseById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const role = req?.user?.role;
-  const result = await CourseService.getCourseById(id, role);
+  const userId = req?.user?.id;
+  const result = await CourseService.getCourseById({ id, role, userId });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -88,13 +90,15 @@ const isCourseExist = catchAsync(async (req, res) => {
     data: result,
   });
 });
-const enrollCourse = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const result = await CourseService.enrollCourse(req.user.id, id);
+
+const toggleCompleteCourse = catchAsync(async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req?.user?.id;
+  const result = await CourseService.toggleCompleteCourse(userId, courseId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Course Enrolled successfully',
+    message: 'Course completion toggled successfully',
     data: result,
   });
 });
@@ -107,5 +111,5 @@ export const courseController = {
   toggleDeleteCourse,
   toggleCourseStatus,
   isCourseExist,
-  enrollCourse
+  toggleCompleteCourse,
 };

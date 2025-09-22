@@ -3,39 +3,20 @@ model Course {
 
     title        String
     description  String
-    tierId       String       @db.ObjectId
     status       CourseStatus @default(ACTIVE)
     language     String
     isDeleted    Boolean      @default(false)
     instructorId String       @db.ObjectId
 
-    forums         Forum[]
-    courseContents CourseContents[]
-    coursesEnroll  CourseEnroll[]
-    tier           Tier             @relation(fields: [tierId], references: [id])
-    instructor     User             @relation(fields: [instructorId], references: [id])
+    forums          Forum[]
+    courseContents  CourseContents[]
+    instructor      User             @relation(fields: [instructorId], references: [id])
+    completeCourses CompleteCourse[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@map("courses")
-}
-
-model CourseEnroll {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
-
-    userId     String  @db.ObjectId
-    courseId   String  @db.ObjectId
-    isEnrolled Boolean @default(true)
-
-    user   User   @relation(fields: [userId], references: [id])
-    course Course @relation(fields: [courseId], references: [id])
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([userId, courseId])
-    @@map("course_enrolls")
 }
 
 model CourseContents {
@@ -101,6 +82,21 @@ model QuizAnswers {
 
     @@unique([quizId, userId])
     @@map("quiz_answers")
+}
+
+model CompleteCourse {
+    id       String @id @default(auto()) @map("_id") @db.ObjectId
+    courseId String @db.ObjectId
+    userId   String @db.ObjectId
+
+    course Course @relation(fields: [courseId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([courseId, userId])
+    @@map("course")
 }
 
 enum CourseContentTypeEnum {

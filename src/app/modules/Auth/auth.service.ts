@@ -40,6 +40,7 @@ const loginUserFromDB = async (
         name: userData.fullName,
         email: userData.email,
         role: userData.role,
+        isUserVerified: userData.isUserVerified
       },
       config.jwt.access_secret as Secret,
       '24h', // 24 hours expiry for email verification
@@ -77,6 +78,7 @@ const loginUserFromDB = async (
         name: userData.fullName,
         email: userData.email,
         role: userData.role,
+        isUserVerified: userData.isUserVerified
       },
       config.jwt.access_secret as Secret,
       config.jwt.access_expires_in as SignOptions['expiresIn'],
@@ -87,6 +89,7 @@ const loginUserFromDB = async (
       name: userData.fullName,
       email: userData.email,
       role: userData.role,
+      isUserVerified: userData.isUserVerified,
       accessToken: accessToken,
     };
   }

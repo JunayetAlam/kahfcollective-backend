@@ -57,7 +57,7 @@ const getSingleForum = catchAsync(async (req, res) => {
 });
 
 const getAllForums = catchAsync(async (req, res) => {
-  const result = await ForumService.getAllForums(req.query, req.user.role);
+  const result = await ForumService.getAllForums(req.query, req.user.role, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -76,16 +76,7 @@ const deleteForum = catchAsync(async (req, res) => {
     data: result,
   });
 });
-const joinForum = catchAsync(async (req, res) => {
-  const { forumId } = req.params;
-  const result = await ForumService.joinForum(req.user.id, forumId);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Joined on Discussion Perfectly',
-    data: result,
-  });
-});
 const getAllConnectedUserToForum = catchAsync(async (req, res) => {
   const { forumId } = req.params;
   const result = await ForumService.getAllConnectedUserToForum(forumId, req.user.id, req.user.role, req.query);
@@ -93,7 +84,7 @@ const getAllConnectedUserToForum = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Joined User Retrieved Successfully',
-    data: result,
+    ...result
   });
 });
 
@@ -106,6 +97,5 @@ export const ForumController = {
   getSingleForum,
   getAllForums,
   deleteForum,
-  joinForum,
   getAllConnectedUserToForum,
 };

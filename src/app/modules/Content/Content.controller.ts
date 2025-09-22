@@ -38,12 +38,12 @@ const getContentById = catchAsync(async (req, res) => {
 
 // Get all content with optional query params
 const getAllContents = catchAsync(async (req, res) => {
-  const result = await ContentService.getAllContents(req.query);
+  const result = await ContentService.getAllContents(req.query,req.user.role, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Contents fetched successfully',
-   ...result
+    ...result
   });
 });
 
@@ -54,7 +54,7 @@ export const updateContent = catchAsync(async (req, res) => {
   const coverImageFile = (files as any)['thumbnail'] ?? [];
   const contentFile = (files as any)['content'] ?? [];
 
-  const result = await ContentService.updateContent( id,
+  const result = await ContentService.updateContent(id,
     req.body,
     coverImageFile[0],
     contentFile[0]);
@@ -78,6 +78,17 @@ const deleteContent = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const toggleIsFeatured = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await ContentService.toggleIsFeatured(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Content Featured successfully',
+    data: result,
+  });
+});
 
 export const ContentControllers = {
   createContent,
@@ -85,4 +96,5 @@ export const ContentControllers = {
   getAllContents,
   updateContent,
   deleteContent,
+  toggleIsFeatured
 };

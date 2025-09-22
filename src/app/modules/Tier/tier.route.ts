@@ -20,11 +20,19 @@ router.get('/:id', tierController.getTierById);
 router.get('/admin/:id', auth('SUPERADMIN'), tierController.getTierById);
 
 router.patch(
+  '/toggle-tier',
+  auth('SUPERADMIN'),
+  validateRequest.body(tierValidation.toggleAssignTier),
+  tierController.toggleAssignTier
+);
+
+router.patch(
   '/:id',
   auth('SUPERADMIN'),
   validateRequest.body(tierValidation.updateTier),
   tierController.updateTier
 );
+
 
 // toggle delete
 router.patch(
@@ -33,18 +41,7 @@ router.patch(
   tierController.toggleDeleteTier
 );
 
-// toggle hide
-router.patch(
-  '/:id/toggle-hide',
-  auth('SUPERADMIN'),
-  tierController.toggleHideTier
-);
 
-// toggle popular
-router.patch(
-  '/:id/toggle-popular',
-  auth('SUPERADMIN'),
-  tierController.togglePopularTier
-);
+
 
 export const TierRouters = router;

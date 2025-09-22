@@ -15,7 +15,7 @@ router.post(
 
 router.get('/', auth('UNAUTHORIZED'), courseController.getAllCourses);
 
-router.get('/:id', courseController.getCourseById);
+router.get('/:id',auth('UNAUTHORIZED'), courseController.getCourseById);
 router.get('/admin/:id', auth('SUPERADMIN'), courseController.getCourseById);
 
 router.patch(
@@ -39,6 +39,11 @@ router.patch(
 );
 
 router.get('/:id/exist', courseController.isCourseExist);
-router.post('/:id/enroll',auth('USER'), courseController.enrollCourse);
+
+router.patch(
+  '/:courseId/toggle-complete',
+  auth('USER'),
+  courseController.toggleCompleteCourse
+);
 
 export const CourseRouters = router;

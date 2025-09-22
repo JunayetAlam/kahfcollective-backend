@@ -5,7 +5,7 @@ import AppError from '../../errors/AppError';
 import { tierService } from '../Tier/tier.service';
 import crypto from 'crypto';
 import QueryBuilder from '../../builder/QueryBuilder';
-import { checkSpecificPaidTier } from '../../utils/isBuyTheSpecificTier';
+import { checkForumAndTierEnrolled } from '../../utils/checkForumAndTierEnrolled';
 
 const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId'>) => {
     const isCourseId = await prisma.course.findUnique({
@@ -100,21 +100,7 @@ const updateLocationForum = async (
 
 const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) => {
 
-    if (role === 'USER') {
-        const joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    forumId: id,
-                    userId,
-                },
-
-            }
-        });
-
-        if (!joinForum || joinForum.isLeave === true) {
-            throw new AppError(httpStatus.FORBIDDEN, 'Please Join on Discussion First')
-        };
-    }
+    await checkForumAndTierEnrolled(userId, id, role)
 
 
     const forum = await prisma.forum.findUnique({
@@ -143,21 +129,6 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
                     name: true
                 }
             },
-            joinForums: {
-                select: {
-                    id: true,
-                    userId: true,
-                    user: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            email: true,
-                            profile: true,
-                            gender: true
-                        }
-                    }
-                }
-            },
             createdAt: true
         }
     });
@@ -168,13 +139,25 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
 };
 
 
-const getAllForums = async (query: any, role: UserRoleEnum) => {
-    if (role === 'USER') {
-        query.status = 'PUBLISHED'
-    }
+const getAllForums = async (query: any, role: UserRoleEnum, userId: string) => {
+
     query.isDeleted = false
     const forumQuery = new QueryBuilder(prisma.forum, query);
-
+    if (role === 'USER') {
+        const UserAllTier = await prisma.userTier.findMany({
+            where: {
+                userId,
+            },
+            select: {
+                id: true,
+                tierId: true
+            }
+        });
+        const tierIds = UserAllTier.map(item => item.tierId);
+        query.tierId = {
+            in: tierIds
+        }
+    };
     const result = await forumQuery
         .search(['title', 'description'])
         .filter()
@@ -190,7 +173,14 @@ const getAllForums = async (query: any, role: UserRoleEnum) => {
             course: {
                 select: {
                     id: true,
-                    title: true
+                    title: true,
+                    instructor: {
+                        select: {
+                            fullName: true,
+                            id: true,
+                            profile: true
+                        }
+                    }
                 }
             },
             forumType: true,
@@ -200,19 +190,18 @@ const getAllForums = async (query: any, role: UserRoleEnum) => {
                     name: true
                 }
             },
-           _count: {
-            select: {
-                posts: {
-                    where: {
-                        isDeleted: false,
+            _count: {
+                select: {
+                    posts: {
+                        where: {
+                            isDeleted: false,
+                        }
                     }
                 }
-            }
-           },
+            },
             createdAt: true
         })
         .execute();
-
     return result;
 };
 
@@ -222,83 +211,15 @@ const deleteForum = async (forumId: string) => {
     return { message: 'Forum deleted successfully' };
 };
 
-
-const joinForum = async (userId: string, forumId: string) => {
-    const isForumExist = await prisma.forum.findUnique({
-        where: {
-            id: forumId,
-            isDeleted: false,
-        },
-        select: {
-            tier: {
-                select: {
-                    id: true,
-                    name: true,
-                }
-            },
-        }
-    });
-    if (!isForumExist) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Forum not found')
-    };
-    if (!isForumExist.tier) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Tier not found')
-    }
-    await checkSpecificPaidTier(isForumExist.tier.id, isForumExist.tier.name, userId);
-
-    const isAlreadyJoined = await prisma.joinForum.findUnique({
-        where: {
-            userId_forumId: {
-                userId,
-                forumId
-            }
-        },
-        select: {
-            isLeave: true,
-            id: true,
-        }
-    });
-    if (isAlreadyJoined && isAlreadyJoined.isLeave === false) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Already joined')
-    };
-    if (isAlreadyJoined && isAlreadyJoined.isLeave === true) {
-        return await prisma.joinForum.update({
-            where: {
-                id: isAlreadyJoined.id
-            },
-            data: { isLeave: false }
-        })
-    } else {
-        return await prisma.joinForum.create({
-            data: {
-                forumId,
-                userId
-            }
-        })
-    }
-};
-
 const getAllConnectedUserToForum = async (id: string, userId: string, role: UserRoleEnum, query: Record<string, unknown>) => {
-    if (role === 'USER') {
-        const joinForum = await prisma.joinForum.findUnique({
-            where: {
-                userId_forumId: {
-                    forumId: id,
-                    userId
-                }
-            }
-        });
+    const { forum } = await checkForumAndTierEnrolled(userId, id, role)
 
-        if (!joinForum || joinForum.isLeave === true) {
-            throw new AppError(httpStatus.FORBIDDEN, 'Please Join on Discussion First')
-        };
-    }
-    query.forumId = id
-    query.isDeleted = false;
-    query.isLeave = false
+    query.tierId = forum.tierId
 
-    const joinForumQuery = new QueryBuilder<typeof prisma.joinForum>(prisma.joinForum, query);
-    const result = await joinForumQuery
+
+
+    const userTierQuery = new QueryBuilder<typeof prisma.userTier>(prisma.userTier, query);
+    const result = await userTierQuery
         .search(['user.fullName'])
         .filter()
         .sort()
@@ -308,6 +229,16 @@ const getAllConnectedUserToForum = async (id: string, userId: string, role: User
                     id: true,
                     fullName: true,
                     profile: true,
+                    userTiers: {
+                        select: {
+                            tier: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
+                        }
+                    }
                 },
             },
         })
@@ -328,6 +259,5 @@ export const ForumService = {
     getSingleForum,
     getAllForums,
     deleteForum,
-    joinForum,
     getAllConnectedUserToForum,
 };

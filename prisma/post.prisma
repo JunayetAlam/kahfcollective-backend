@@ -6,7 +6,6 @@ model Post {
     forumId     String  @db.ObjectId
     isDeleted   Boolean @default(false)
     isPublished Boolean @default(false)
-    
 
     user  User  @relation(fields: [userId], references: [id])
     forum Forum @relation(fields: [forumId], references: [id])
@@ -22,40 +21,36 @@ model Post {
 model React {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    joinForumId String  @db.ObjectId
-    postId      String  @db.ObjectId
-    isDeleted   Boolean @default(false)
+    postId    String  @db.ObjectId
+    userId    String  @db.ObjectId
+    isDeleted Boolean @default(false)
 
-    joinForum JoinForum @relation(fields: [joinForumId], references: [id])
-    post      Post      @relation(fields: [postId], references: [id])
+    post Post @relation(fields: [postId], references: [id])
+    user User @relation(fields: [userId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@unique([joinForumId, postId])
+    @@unique([postId, userId])
     @@map("reacts")
 }
 
 model Reply {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    joinForumId   String         @db.ObjectId
-    postId        String         @db.ObjectId
-    forumId       String         @db.ObjectId
-    parentReplyId String?        @db.ObjectId
-    isDeleted     Boolean        @default(false)
-    
+    postId        String  @db.ObjectId
+    forumId       String  @db.ObjectId
+    parentReplyId String? @db.ObjectId
+    isDeleted     Boolean @default(false)
 
     message String
 
-    joinForum       JoinForum @relation(fields: [joinForumId], references: [id])
-    post            Post      @relation(fields: [postId], references: [id])
-    parentReply     Reply?    @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    childrenReplies Reply[]   @relation("ReplyToReply")
+    post            Post    @relation(fields: [postId], references: [id])
+    parentReply     Reply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    childrenReplies Reply[] @relation("ReplyToReply")
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@map("replies")
 }
-

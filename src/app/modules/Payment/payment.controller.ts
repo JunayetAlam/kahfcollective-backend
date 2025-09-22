@@ -83,17 +83,17 @@ const cancelPayment = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-const buyTier = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+const checkoutPayment = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  const email = req.user.email
+  const email = req.user.email;
+  const { paymentType, amount } = req.body
 
-  const result = await PaymentService.buyTier(userId, email, id);
+  const result = await PaymentService.checkoutPayment(userId, email, paymentType, amount);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Payment Cancel Successfully',
+    message: 'Payment Intent Created',
     data: result,
   });
 });
@@ -105,5 +105,5 @@ export const PaymentController = {
   getSingleForUser,
   cancelPayment,
   singleTransactionHistoryBySessionId,
-  buyTier
+  checkoutPayment
 };

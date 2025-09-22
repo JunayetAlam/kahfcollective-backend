@@ -5,11 +5,9 @@ import { prisma } from '../../utils/prisma';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { tierService } from '../Tier/tier.service';
 import { toggleDelete } from '../../utils/toggleDelete';
-import { checkSpecificPaidTier } from '../../utils/isBuyTheSpecificTier';
 
 const createCourse = async (data: Course, userId: string) => {
     data.instructorId = userId;
-    await tierService.isTierExist(data.tierId)
 
     return await prisma.course.create({
         data: {
@@ -19,7 +17,7 @@ const createCourse = async (data: Course, userId: string) => {
     });
 };
 
-const getAllCourses = async (query: Record<string, unknown>, role?: UserRoleEnum) => {
+const getAllCourses = async ({ query, role, userId }: { query: Record<string, unknown>, role?: UserRoleEnum, userId?: string }) => {
     if (role === UserRoleEnum.USER) {
         query.isDeleted = false;
         query.status = 'ACTIVE';
@@ -39,13 +37,6 @@ const getAllCourses = async (query: Record<string, unknown>, role?: UserRoleEnum
             language: true,
             createdAt: true,
             updatedAt: true,
-            tier: {
-                select: {
-                    id: true,
-                    name: true,
-                    price: true
-                }
-            },
             instructor: {
                 select: {
                     id: true,
@@ -60,7 +51,14 @@ const getAllCourses = async (query: Record<string, unknown>, role?: UserRoleEnum
                         }
                     }
                 }
-            }
+            },
+            ...(role === 'USER' && {
+                completeCourses: {
+                    where: {
+                        userId
+                    }
+                }
+            })
         })
         .exclude()
         .paginate()
@@ -69,7 +67,7 @@ const getAllCourses = async (query: Record<string, unknown>, role?: UserRoleEnum
     return result
 };
 
-const getCourseById = async (id: string, role?: UserRoleEnum) => {
+const getCourseById = async ({ id, role, userId }: { id: string, role?: UserRoleEnum, userId?: string }) => {
     const whereClause: any = {
         id,
         ...(role !== UserRoleEnum.SUPERADMIN && {
@@ -81,14 +79,6 @@ const getCourseById = async (id: string, role?: UserRoleEnum) => {
     const course = await prisma.course.findUnique({
         where: whereClause,
         include: {
-            tier: {
-                select: {
-                    id: true,
-                    name: true,
-                    price: true,
-                    points: true
-                }
-            },
             instructor: {
                 select: {
                     id: true,
@@ -107,10 +97,17 @@ const getCourseById = async (id: string, role?: UserRoleEnum) => {
                     createdAt: true,
                     title: true,
                     description: true,
-                   
                 },
                 orderBy: { index: 'asc' }
-            }
+            },
+            ...(role === 'USER' && {
+                completeCourses: {
+                    where: {
+                        userId
+                    }
+                }
+            })
+
         }
     });
 
@@ -135,10 +132,6 @@ const getCourseById = async (id: string, role?: UserRoleEnum) => {
 
 const updateCourse = async (id: string, data: Partial<Course>, userId?: string, role?: UserRoleEnum) => {
 
-    if (data.tierId) {
-        await tierService.isTierExist(data.tierId)
-    }
-
     return await prisma.course.update({
         where: {
             id,
@@ -146,12 +139,7 @@ const updateCourse = async (id: string, data: Partial<Course>, userId?: string, 
         },
         data,
         include: {
-            tier: {
-                select: {
-                    id: true,
-                    name: true
-                }
-            },
+
             instructor: {
                 select: {
                     id: true,
@@ -176,12 +164,7 @@ const toggleCourseStatus = async (id: string, status: CourseStatus, role: UserRo
         },
         data: { status },
         include: {
-            tier: {
-                select: {
-                    id: true,
-                    name: true
-                }
-            },
+
             instructor: {
                 select: {
                     id: true,
@@ -209,58 +192,29 @@ const isCourseExist = async (id: string) => {
     return course;
 };
 
-const enrollCourse = async (userId: string, courseId: string,) => {
-
-    const isCourseExist = await prisma.course.findUnique({
+const toggleCompleteCourse = async (userId: string, courseId: string) => {
+    const IsCompletedCourse = await prisma.completeCourse.findUnique({
         where: {
-            id: courseId,
-            isDeleted: false,
-            NOT: {
-                status: 'HIDDEN'
-            }
-        },
-        include: {
-            tier: {
-                select: {
-                    name: true
-                }
-            }
-        }
-    });
-    if (!isCourseExist) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Course not found')
-    }
-    await checkSpecificPaidTier(isCourseExist.tierId, isCourseExist.tier.name, userId);
-
-    const isAlreadyEnrolled = await prisma.courseEnroll.findUnique({
-        where: {
-            userId_courseId: {
+            courseId_userId: {
                 userId,
                 courseId
-            },
+            }
         }
     });
-    if (isAlreadyEnrolled && isAlreadyEnrolled.isEnrolled === true) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Already enrolled')
-    };
-    if (isAlreadyEnrolled && isAlreadyEnrolled.isEnrolled === false) {
-        return await prisma.courseEnroll.update({
+    if (IsCompletedCourse) {
+        return await prisma.completeCourse.delete({
             where: {
-                id: isAlreadyEnrolled.id,
-            },
-            data: {
-                isEnrolled: true
+                id: IsCompletedCourse.id
             }
         })
     }
-    const result = await prisma.courseEnroll.create({
+    return await prisma.completeCourse.create({
         data: {
             courseId,
             userId
         }
-    });
-    return result
-};
+    })
+}
 
 export const CourseService = {
     createCourse,
@@ -270,5 +224,5 @@ export const CourseService = {
     toggleDeleteCourse,
     toggleCourseStatus,
     isCourseExist,
-    enrollCourse
+    toggleCompleteCourse
 };
