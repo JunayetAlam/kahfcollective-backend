@@ -9,6 +9,12 @@ import { toggleDelete } from '../../utils/toggleDelete';
 const createCourse = async (data: Course, userId: string) => {
     data.instructorId = userId;
 
+    await prisma.tier.findUniqueOrThrow({
+        where: {
+            id: data.tierId
+        }
+    })
+
     return await prisma.course.create({
         data: {
             ...data,
@@ -18,10 +24,28 @@ const createCourse = async (data: Course, userId: string) => {
 };
 
 const getAllCourses = async ({ query, role, userId }: { query: Record<string, unknown>, role?: UserRoleEnum, userId?: string }) => {
+    if (role === UserRoleEnum.INSTRUCTOR) {
+        query.instructorId = userId
+    }
+    console.log(query)
     if (role === UserRoleEnum.USER) {
         query.isDeleted = false;
         query.status = 'ACTIVE';
+        const userAllTier = await prisma.userTier.findMany({
+            where: {
+                userId
+            },
+            select: {
+                tierId: true
+            }
+        });
+        const userAllTierId = userAllTier.map(item => item.tierId)
+        query.tierId = {
+            in: userAllTierId
+        }
     }
+
+
 
     const coursesQuery = new QueryBuilder<typeof prisma.course>(prisma.course, query);
 
@@ -37,6 +61,7 @@ const getAllCourses = async ({ query, role, userId }: { query: Record<string, un
             language: true,
             createdAt: true,
             updatedAt: true,
+            tierId: true,
             instructor: {
                 select: {
                     id: true,
@@ -68,16 +93,33 @@ const getAllCourses = async ({ query, role, userId }: { query: Record<string, un
 };
 
 const getCourseById = async ({ id, role, userId }: { id: string, role?: UserRoleEnum, userId?: string }) => {
-    const whereClause: any = {
+    const query: any = {
         id,
-        ...(role !== UserRoleEnum.SUPERADMIN && {
-            isDeleted: false,
-            status: 'ACTIVE'
-        })
+
     };
+    if (role === UserRoleEnum.INSTRUCTOR) {
+        query.instructorId = userId
+    }
+
+    if (role === UserRoleEnum.USER) {
+        query.isDeleted = false;
+        query.status = 'ACTIVE';
+        const userAllTier = await prisma.userTier.findMany({
+            where: {
+                userId
+            },
+            select: {
+                tierId: true
+            }
+        });
+        const userAllTierId = userAllTier.map(item => item.tierId)
+        query.tierId = {
+            in: userAllTierId
+        }
+    }
 
     const course = await prisma.course.findUnique({
-        where: whereClause,
+        where: query,
         include: {
             instructor: {
                 select: {
@@ -131,7 +173,13 @@ const getCourseById = async ({ id, role, userId }: { id: string, role?: UserRole
 };
 
 const updateCourse = async (id: string, data: Partial<Course>, userId?: string, role?: UserRoleEnum) => {
-
+    if (data.tierId) {
+        await prisma.tier.findUniqueOrThrow({
+            where: {
+                id: data.tierId
+            }
+        })
+    }
     return await prisma.course.update({
         where: {
             id,

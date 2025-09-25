@@ -27,16 +27,20 @@ export const checkForumAndTierEnrolled = async (userId: string, forumId: string,
 
 
 
-    const isTierExist = await prisma.userTier.findUnique({
-        where: {
-            tierId_userId: {
-                tierId: isForumExist.tierId as string,
-                userId
-            }
-        }
-    })
+    await isTierExist(isForumExist.tierId as string, userId)
 
 
 
     return { forum: isForumExist }
 };
+
+export const isTierExist = async (tierId: string, userId: string) => {
+    await prisma.userTier.findUnique({
+        where: {
+            tierId_userId: {
+                tierId,
+                userId
+            }
+        }
+    })
+}
