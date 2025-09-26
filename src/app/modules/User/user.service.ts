@@ -32,6 +32,11 @@ const getAllUsersFromDB = async (query: any) => {
       status: true,
       referredBy: true,
       isUserVerified: true,
+      enrollCourses: {
+        select: {
+          courseId: true
+        }
+      },
       userTiers: {
         select: {
           tier: {
@@ -49,6 +54,18 @@ const getAllUsersFromDB = async (query: any) => {
 
   return result;
 };
+
+const getTierUsers = async (tierId: string, query: any) => {
+  query.userTiers = {
+    some: {
+      tierId
+    }
+  }
+  query.role = 'USER'
+  const result = getAllUsersFromDB(query);
+  return result
+};
+
 
 const getMyProfileFromDB = async (id: string) => {
   const Profile = await prisma.user.findUniqueOrThrow({
@@ -250,5 +267,6 @@ export const UserServices = {
   updateProfileImg,
   isUserExist,
   toggleIsUserVerified,
-  expireUserMonthlySubscription
+  expireUserMonthlySubscription,
+  getTierUsers
 };

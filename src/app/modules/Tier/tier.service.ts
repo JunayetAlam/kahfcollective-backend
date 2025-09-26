@@ -103,6 +103,8 @@ const toggleAssignTier = async (userId: string, tierId: string) => {
   })
 }
 
+
+
 export const tierService = {
   createTier,
   getAllTiers,
@@ -110,5 +112,5 @@ export const tierService = {
   updateTier,
   toggleDeleteTier,
   isTierExist,
-  toggleAssignTier
+  toggleAssignTier,
 };

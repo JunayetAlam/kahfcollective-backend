@@ -13,6 +13,15 @@ const getAllUsers = catchAsync(async (req, res) => {
     ...result
   });
 });
+const getTierUsers = catchAsync(async (req, res) => {
+  const result = await UserServices.getTierUsers(req.params.tierId, req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Users retrieved successfully',
+    ...result
+  });
+});
 
 const getMyProfile = catchAsync(async (req, res) => {
   const id = req.user.id;
@@ -102,6 +111,7 @@ const toggleIsUserVerified = catchAsync(async (req, res) => {
 
 export const UserControllers = {
   getAllUsers,
+  getTierUsers,
   getMyProfile,
   getUserDetails,
   updateMyProfile,

@@ -43,6 +43,7 @@ model User {
   userTiers       UserTier[]
   reacts          React[]
   completeCourses CompleteCourse[]
+  enrollCourses   EnrollCourse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

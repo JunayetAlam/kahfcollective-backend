@@ -45,5 +45,15 @@ router.patch(
   auth('USER'),
   courseController.toggleCompleteCourse
 );
+router.post(
+  '/enroll',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  courseController.toggleEnrollCourse
+);
+router.post(
+  '/enrolled-students/:courseId',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  courseController.enrolledUserOnCourse
+);
 
 export const CourseRouters = router;

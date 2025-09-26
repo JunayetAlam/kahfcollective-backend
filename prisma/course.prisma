@@ -12,6 +12,7 @@ model Course {
     courseContents  CourseContents[]
     instructor      User             @relation(fields: [instructorId], references: [id])
     completeCourses CompleteCourse[]
+    enrollCourses   EnrollCourse[]
     tierId          String           @db.ObjectId
 
     tier Tier @relation(fields: [tierId], references: [id])

@@ -103,6 +103,27 @@ const toggleCompleteCourse = catchAsync(async (req, res) => {
   });
 });
 
+const toggleEnrollCourse = catchAsync(async (req, res) => {
+  const { courseId, userId } = req.body;
+  const result = await CourseService.toggleEnrollCourse(userId, courseId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Course enrolled toggled successfully',
+    data: result,
+  });
+});
+const enrolledUserOnCourse = catchAsync(async (req, res) => {
+  const { courseId } = req.params;
+  const result = await CourseService.enrolledUserOnCourse(courseId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Enrolled User retrieved successfully',
+    data: result,
+  });
+});
+
 export const courseController = {
   createCourse,
   getAllCourses,
@@ -112,4 +133,6 @@ export const courseController = {
   toggleCourseStatus,
   isCourseExist,
   toggleCompleteCourse,
+  toggleEnrollCourse,
+  enrolledUserOnCourse
 };

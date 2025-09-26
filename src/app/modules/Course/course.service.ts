@@ -3,7 +3,6 @@ import { Course, CourseContentTypeEnum, CourseStatus, UserRoleEnum } from "@pris
 import AppError from "../../errors/AppError";
 import { prisma } from '../../utils/prisma';
 import QueryBuilder from '../../builder/QueryBuilder';
-import { tierService } from '../Tier/tier.service';
 import { toggleDelete } from '../../utils/toggleDelete';
 
 const createCourse = async (data: Course, userId: string) => {
@@ -27,21 +26,13 @@ const getAllCourses = async ({ query, role, userId }: { query: Record<string, un
     if (role === UserRoleEnum.INSTRUCTOR) {
         query.instructorId = userId
     }
-    console.log(query)
     if (role === UserRoleEnum.USER) {
         query.isDeleted = false;
         query.status = 'ACTIVE';
-        const userAllTier = await prisma.userTier.findMany({
-            where: {
+        query.enrollCourses = {
+            some: {
                 userId
-            },
-            select: {
-                tierId: true
             }
-        });
-        const userAllTierId = userAllTier.map(item => item.tierId)
-        query.tierId = {
-            in: userAllTierId
         }
     }
 
@@ -62,6 +53,12 @@ const getAllCourses = async ({ query, role, userId }: { query: Record<string, un
             createdAt: true,
             updatedAt: true,
             tierId: true,
+
+            tier: {
+                select: {
+                    name: true
+                }
+            },
             instructor: {
                 select: {
                     id: true,
@@ -74,7 +71,8 @@ const getAllCourses = async ({ query, role, userId }: { query: Record<string, un
                         where: {
                             type: 'VIDEO'
                         }
-                    }
+                    },
+                    enrollCourses: true
                 }
             },
             ...(role === 'USER' && {
@@ -264,6 +262,91 @@ const toggleCompleteCourse = async (userId: string, courseId: string) => {
     })
 }
 
+const toggleEnrollCourse = async (userId: string, courseId: string) => {
+    const user = await prisma.user.findUniqueOrThrow({
+        where: {
+            id: userId
+        },
+        select: {
+            id: true,
+            userTiers: {
+                select: {
+                    tierId: true,
+
+                }
+            }
+        }
+    });
+    const allTierId = user.userTiers.map(item => item.tierId);
+    const course = await prisma.course.findUniqueOrThrow({
+        where: {
+            id: courseId
+        },
+        select: {
+            tierId: true,
+            tier: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+    if (!allTierId.includes(course.tierId)) {
+        throw new AppError(httpStatus.BAD_REQUEST, `User is not under the ${course.tier.name} Tier`)
+    }
+
+    const isAlreadyEnrolled = await prisma.enrollCourse.findUnique({
+        where: {
+            userId_courseId: {
+                courseId,
+                userId
+            }
+        }
+    });
+    if (isAlreadyEnrolled) {
+        const result = await prisma.enrollCourse.delete({
+            where: {
+                userId_courseId: {
+                    courseId,
+                    userId
+                }
+            }
+        });
+        return result
+    }
+
+    const result = await prisma.enrollCourse.create({
+        data: {
+            userId,
+            courseId
+        }
+    })
+
+
+    return result
+}
+
+const enrolledUserOnCourse = async (courseId: string) => {
+    const result = await prisma.enrollCourse.findMany({
+        where: {
+            courseId
+        },
+        select: {
+            user: {
+                select: {
+                    fullName: true,
+                    email: true,
+                    id: true,
+                }
+            }
+        }
+    });
+    const returnedResult = result.map(item => item.user)
+    return returnedResult
+}
+
+
+
 export const CourseService = {
     createCourse,
     getAllCourses,
@@ -272,5 +355,8 @@ export const CourseService = {
     toggleDeleteCourse,
     toggleCourseStatus,
     isCourseExist,
-    toggleCompleteCourse
+    toggleCompleteCourse,
+    toggleEnrollCourse,
+    enrolledUserOnCourse,
+
 };

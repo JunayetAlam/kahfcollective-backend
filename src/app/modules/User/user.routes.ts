@@ -9,6 +9,7 @@ import { upload } from '../../utils/fileUploader';
 const router = express.Router();
 
 router.get('/', auth('SUPERADMIN'), UserControllers.getAllUsers);
+router.get('/tier-users/:tierId', auth('SUPERADMIN', 'INSTRUCTOR'), UserControllers.getTierUsers);
 router.get('/me', auth('ANY'), UserControllers.getMyProfile);
 
 router.get('/:id', auth('ANY'), UserControllers.getUserDetails);
