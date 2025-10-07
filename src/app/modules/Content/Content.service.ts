@@ -40,6 +40,8 @@ const createContent = async (
     }
   }
 
+  
+
   const content = await prisma.content.create({
     data: {
       ...payload,
