@@ -26,11 +26,52 @@ router.post(
   CourseContentController.createQuestionContent,
 );
 
-router.post(
-  '/question/answer',
+// Create question content
+router.patch(
+  '/question',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  validateRequest.body(CoursecontentValidation.updateQuestionContent),
+  CourseContentController.updateQuestionContent,
+);
+
+// router.patch(
+//   '/question',
+//   auth('INSTRUCTOR', 'SUPERADMIN'),
+//   validateRequest.body(CoursecontentValidation.answerQuestionContent),
+//   CourseContentController.answerQuestionContent,
+// );
+
+router.get(
+  '/questions',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(CoursecontentValidation.answerQuestionContent),
   CourseContentController.answerQuestionContent,
+);
+
+router.get(
+  '/questions/:id',
+  auth('ANY'),
+  CourseContentController.getSingleQuestion,
+);
+
+router.post(
+  '/question/answer',
+  auth('ANY'),
+  validateRequest.body(CoursecontentValidation.answerQuestionContent),
+  CourseContentController.answerQuestionContent,
+);
+
+router.get(
+  '/question/answers',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  CourseContentController.getQuestionAnswers,
+);
+
+router.put(
+  '/question/answers',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  validateRequest.body(CoursecontentValidation.updateAnswerStatus),
+  CourseContentController.updateAnswerStatus,
 );
 
 router.put(

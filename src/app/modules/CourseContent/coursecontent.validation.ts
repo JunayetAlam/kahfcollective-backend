@@ -49,10 +49,29 @@ const createQuestionContent = z.object({
     .strict(),
 });
 
+const updateQuestionContent = z.object({
+  body: z
+    .object({
+      title: z.string().optional(),
+      contentId: z.string(),
+      status: z.nativeEnum(ContentStatusEnum).optional(),
+      question: z.string().optional(),
+    })
+    .strict(),
+});
+
+const updateAnswerStatus = z.object({
+  body: z
+    .object({
+      answerId: z.string(),
+      isCorrect: z.boolean(),
+    })
+    .strict(),
+});
+
 const answerQuestionContent = z.object({
   body: z
     .object({
-      courseId: z.string(),
       questionId: z.string(),
       answer: z.string(),
     })
@@ -102,4 +121,6 @@ export const CoursecontentValidation = {
   updateQuiz,
   answerQuestionContent,
   createQuestionContent,
+  updateQuestionContent,
+  updateAnswerStatus,
 };

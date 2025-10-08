@@ -309,6 +309,57 @@ const answerQuestionContent = catchAsync(async (req, res) => {
   });
 });
 
+const updateQuestionContent = catchAsync(async (req, res) => {
+  const result = await CoursecontentService.updateQuestionContent(
+    req.body,
+    req.user.id,
+    req.user.role,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Question update successful',
+    data: result,
+  });
+});
+
+const getQuestionAnswers = catchAsync(async (req, res) => {
+  const result = await CoursecontentService.getQuestionAnswers(
+    req.user.id,
+    req.user.role,
+    req.query,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Question answer retrieved',
+    ...result,
+  });
+});
+const getSingleQuestion = catchAsync(async (req, res) => {
+  const { id: questionId } = req.params;
+  const result = await CoursecontentService.getSingleQuestion(questionId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Getting single question success',
+    data: result,
+  });
+});
+const updateAnswerStatus = catchAsync(async (req, res) => {
+  const result = await CoursecontentService.updateAnswerStatus(
+    req.body,
+    req.user.id,
+    req.user.role,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Question answer retrieved',
+    data: result,
+  });
+});
+
 export const CourseContentController = {
   createVideoContent,
   updateVideoContent,
@@ -333,4 +384,8 @@ export const CourseContentController = {
   changeQuizIndex,
   createQuestionContent,
   answerQuestionContent,
+  updateQuestionContent,
+  getQuestionAnswers,
+  updateAnswerStatus,
+  getSingleQuestion,
 };

@@ -1,5 +1,6 @@
 import { CourseContents, Quiz, UserRoleEnum } from '@prisma/client';
 import httpStatus from 'http-status';
+import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
 import { toggleDelete } from '../../utils/toggleDelete';
@@ -192,21 +193,122 @@ const createQuestionContent = async (
           question: payload.question,
         },
       },
-      instructorId: isCourseExist.instructorId,
+      instructorId: userId,
+    },
+    include: {
+      courseQuestions: true,
     },
   });
   return result;
 };
 
-const answerQuestionContent = async (payload: any, userId: string) => {
-  console.log(payload);
-  const isCourseExist = await prisma.course.findUnique({
+const updateQuestionContent = async (
+  payload: Pick<CourseContents, 'courseId'> & {
+    contentId: string;
+    courseId: string;
+    question?: string;
+    status?: string;
+  },
+  userId: string,
+  role: UserRoleEnum,
+) => {
+  // 1. Find the existing Course Content and its associated Course for authorization
+  const existingContent = await prisma.courseContents.findUnique({
     where: {
-      id: payload.courseId,
+      id: payload.contentId,
+      courseId: payload.courseId,
+      isDeleted: false,
+      type: 'QUESTION',
+    },
+    include: {
+      course: {
+        select: {
+          instructorId: true,
+        },
+      },
     },
   });
-  if (!isCourseExist) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
+
+  console.log(existingContent);
+
+  if (!existingContent || !existingContent.course) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'Question content not found or deleted in course',
+    );
+  }
+
+  const courseInstructorId = existingContent.course.instructorId;
+  // NOTE: Assuming UserRoleEnum contains a value named SUPERADMIN
+  const isSuperAdmin = role === UserRoleEnum.SUPERADMIN;
+  const isInstructorMatch = userId === courseInstructorId;
+
+  // 2. Authorization Check
+  if (!isSuperAdmin && !isInstructorMatch) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You are not authorized to update this question',
+    );
+  }
+
+  // 3. Perform Update Transaction - ONLY on the Question model
+  const result = await prisma.$transaction(async tx => {
+    // Find the associated Question ID using the unique courseContentId
+    const existingQuestion = await tx.question.findUnique({
+      where: { courseContentId: payload.contentId },
+      select: { id: true },
+    });
+
+    if (!existingQuestion) {
+      // Critical data integrity error: CourseContent is type QUESTION but no associated Question exists.
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Associated question record is missing',
+      );
+    }
+
+    // Update the Question record
+    await tx.question.update({
+      where: { id: existingQuestion.id },
+      data: { question: payload.question },
+    });
+
+    // Return the associated CourseContents record to confirm the operation
+    return tx.courseContents.findUniqueOrThrow({
+      where: { id: payload.contentId },
+      include: {
+        courseQuestions: true,
+      },
+    });
+  });
+
+  return result;
+};
+
+const answerQuestionContent = async (payload: any, userId: string) => {
+  console.log(payload);
+  const isQuestionExist = await prisma.question.findUnique({
+    where: {
+      id: payload.questionId,
+    },
+    include: {
+      questionAnswers: {
+        where: {
+          userId: userId,
+        },
+      },
+    },
+  });
+  if (!isQuestionExist) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Question not found');
+  }
+
+  const isAlreadyAnswered = !(isQuestionExist.questionAnswers.length == 0);
+
+  console.log({ isAlreadyAnswered });
+
+  if (isAlreadyAnswered) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Already answered');
   }
 
   const result = await prisma.questionAnswer.create({
@@ -214,6 +316,116 @@ const answerQuestionContent = async (payload: any, userId: string) => {
       questionId: payload.questionId,
       userId,
       providedAnswer: payload.answer,
+    },
+  });
+
+  return result;
+};
+
+const getQuestionAnswers = async (
+  userId: string,
+  userRole: UserRoleEnum,
+  query: any,
+) => {
+  query.question = {};
+  query.question['instructorId'] = userId;
+
+  const answersQuery = new QueryBuilder<typeof prisma.questionAnswer>(
+    prisma.questionAnswer,
+    query,
+  );
+
+  query.sort = 'isCorrectAnswer,createdAt';
+
+  const answers = await answersQuery
+    .filter()
+    .sort()
+    .customFields({
+      question: true,
+      isCorrectAnswer: true,
+      createdAt: true,
+      id: true,
+      providedAnswer: true,
+      questionId: true,
+      user: true,
+    })
+    .exclude()
+    .paginate()
+    .execute();
+
+  return answers;
+};
+
+const getSingleQuestion = async (questionId: string) => {
+  const data = await prisma.question.findFirst({
+    where: {
+      id: questionId,
+    },
+  });
+  if (!data) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Question not found');
+  }
+
+  return data;
+};
+
+const updateAnswerStatus = async (
+  payload: { answerId: string; isCorrect: boolean }, // Explicitly type the payload
+  userId: string, // Use instructorId or adminId to verify permissions
+  userRole: string,
+) => {
+  const authorizationCondition =
+    userRole === 'SUPER_ADMIN'
+      ? { id: payload.answerId } // Super Admin: Just check the answer ID
+      : {
+          // Instructor: Check answer ID AND that the user is the content instructor
+          id: payload.answerId,
+          question: {
+            instructorId: userId,
+          },
+        };
+
+  // 1. Find the answer and the associated question/content
+  // const answerRecord = await prisma.questionAnswer.findFirst({
+  //   where: authorizationCondition,
+  //   // We need to check permissions based on the content/course owner
+  //   select: {
+  //     question: {
+  //       // Assuming 'question' is the relation name to the CourseQuestions model
+  //       select: {
+  //         courseContent: {
+  //           // Assuming 'courseContent' links to the CourseContents model
+  //           select: {
+  //             instructorId: true, // Get the original content creator/owner
+  //           },
+  //         },
+  //       },
+  //     },
+  //   },
+  // });
+
+  // if (!answerRecord) {
+  //   throw new AppError(httpStatus.NOT_FOUND, 'Answer not found');
+  // }
+
+  // 3. Update the answer status (isCorrect)
+  const result = await prisma.questionAnswer.update({
+    where: {
+      id: payload.answerId,
+      question: {
+        instructorId: userId,
+      },
+    },
+    data: {
+      isCorrectAnswer: payload.isCorrect,
+    },
+    // Select the updated fields to return
+    select: {
+      id: true,
+      providedAnswer: true,
+      isCorrectAnswer: true, // This is the updated field
+      userId: true,
+      questionId: true,
     },
   });
 
@@ -353,11 +565,40 @@ const getAllContentForSpecificCourseForUser = async (
       courseId,
       isDeleted: false,
     },
+    include: {
+      courseQuestions: {
+        include: {
+          questionAnswers: {
+            take: 1,
+            where: {
+              userId: userId,
+            },
+          },
+        },
+      },
+    },
     orderBy: {
       index: 'asc',
     },
   });
-  return contents;
+
+  const formattedData = contents.map(content => ({
+    ...content,
+    hasAnswered: (content.courseQuestions?.questionAnswers ?? []).length > 0,
+    courseQuestions: {
+      ...content.courseQuestions,
+      // questionAnswers: undefined,
+      answer: content.courseQuestions?.questionAnswers[0],
+      questionAnswers: undefined,
+    },
+  }));
+
+  return formattedData;
+  return {
+    ...contents,
+    // questionAnswers: undefined,
+    // isAnswered: contents.length > 0,
+  };
 };
 
 // 2. Get single content (for owners/superadmins)
@@ -810,4 +1051,9 @@ export const CoursecontentService = {
   changeQuizIndex,
   createQuestionContent,
   answerQuestionContent,
+  updateQuestionContent,
+  updateAnswerStatus,
+
+  getQuestionAnswers,
+  getSingleQuestion,
 };

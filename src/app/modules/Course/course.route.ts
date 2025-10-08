@@ -10,32 +10,32 @@ router.post(
   '/',
   auth('INSTRUCTOR'),
   validateRequest.body(courseValidation.createCourse),
-  courseController.createCourse
+  courseController.createCourse,
 );
 
 router.get('/', auth('UNAUTHORIZED'), courseController.getAllCourses);
 
-router.get('/:id',auth('UNAUTHORIZED'), courseController.getCourseById);
+router.get('/:id', auth('UNAUTHORIZED'), courseController.getCourseById);
 router.get('/admin/:id', auth('SUPERADMIN'), courseController.getCourseById);
 
 router.patch(
   '/:id',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(courseValidation.updateCourse),
-  courseController.updateCourse
+  courseController.updateCourse,
 );
 
 router.patch(
   '/:id/toggle-delete',
   auth('INSTRUCTOR', 'SUPERADMIN'),
-  courseController.toggleDeleteCourse
+  courseController.toggleDeleteCourse,
 );
 
 router.patch(
   '/:id/toggle-status',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(courseValidation.toggleStatus),
-  courseController.toggleCourseStatus
+  courseController.toggleCourseStatus,
 );
 
 router.get('/:id/exist', courseController.isCourseExist);
@@ -43,17 +43,17 @@ router.get('/:id/exist', courseController.isCourseExist);
 router.patch(
   '/:courseId/toggle-complete',
   auth('USER'),
-  courseController.toggleCompleteCourse
+  courseController.toggleCompleteCourse,
 );
 router.post(
   '/enroll',
   auth('INSTRUCTOR', 'SUPERADMIN'),
-  courseController.toggleEnrollCourse
+  courseController.toggleEnrollCourse,
 );
 router.post(
   '/enrolled-students/:courseId',
   auth('INSTRUCTOR', 'SUPERADMIN'),
-  courseController.enrolledUserOnCourse
+  courseController.enrolledUserOnCourse,
 );
 
 export const CourseRouters = router;
