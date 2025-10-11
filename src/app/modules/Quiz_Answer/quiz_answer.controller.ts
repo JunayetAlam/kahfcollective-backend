@@ -17,6 +17,18 @@ const ansQuiz = catchAsync(async (req: Request, res) => {
     data: result,
   });
 });
+const markQuizAnswer = catchAsync(async (req: Request, res) => {
+  const userId = req.user.id;
+  const payload = req.body;
+
+  const result = await QuizAnswerService.markQuizAnswer(userId, payload.isRight);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    message: 'Quiz answer marked successfully',
+    data: result,
+  });
+});
 
 // Lock all quizzes for a content
 const lockQuiz = catchAsync(async (req: Request, res) => {
@@ -59,10 +71,22 @@ const getSingleQuiz = catchAsync(async (req: Request, res) => {
     data: result,
   });
 });
+// Get a single quiz with user's answer
+const getAllQuizAnswers = catchAsync(async (req: Request, res) => {
+  const result = await QuizAnswerService.getAllQuizAnswersGrouped(Number(req.query.page || 1), Number(req.query.limit || 10));
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Quiz fetched successfully',
+    data: result,
+  });
+});
 
 export const QuizAnswerControllers = {
   ansQuiz,
+  markQuizAnswer,
   lockQuiz,
   getQuizResult,
   getSingleQuiz,
+  getAllQuizAnswers
 };

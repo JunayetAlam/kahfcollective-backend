@@ -80,47 +80,7 @@ model QuestionAnswer {
     @@map("question_answers")
 }
 
-model Quiz {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    courseContentId String      @db.ObjectId
-    instructorId    String      @db.ObjectId
-    question        String
-    options         Options
-    rightAnswer     RightAnswer
-    isDeleted       Boolean     @default(false)
-    index           Int
-
-    courseContent CourseContents @relation(fields: [courseContentId], references: [id])
-    instructor    User           @relation(fields: [instructorId], references: [id])
-
-    createdAt   DateTime      @default(now())
-    updatedAt   DateTime      @updatedAt
-    quizAnswers QuizAnswers[]
-
-    @@map("quizzes")
-}
-
-model QuizAnswers {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
-
-    quizId      String       @db.ObjectId
-    userId      String       @db.ObjectId
-    answer      RightAnswer
-    rightAnswer RightAnswer?
-    isRight     Boolean?
-    isDeleted   Boolean      @default(false)
-    isLocked    Boolean      @default(false)
-
-    quiz Quiz @relation(fields: [quizId], references: [id])
-    user User @relation(fields: [userId], references: [id])
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([quizId, userId])
-    @@map("quiz_answers")
-}
 
 model CompleteCourse {
     id       String @id @default(auto()) @map("_id") @db.ObjectId
@@ -146,20 +106,6 @@ enum CourseContentTypeEnum {
 enum ContentStatusEnum {
     PUBLISHED
     DRAFT
-}
-
-type Options {
-    A String
-    B String
-    C String
-    D String
-}
-
-enum RightAnswer {
-    A
-    B
-    C
-    D
 }
 
 enum CourseStatus {

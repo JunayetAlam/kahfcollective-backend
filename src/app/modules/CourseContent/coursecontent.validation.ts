@@ -1,4 +1,4 @@
-import { ContentStatusEnum, RightAnswer } from '@prisma/client';
+import { ContentStatusEnum, QuizType } from '@prisma/client';
 import { z } from 'zod';
 
 const OptionsSchema = z
@@ -11,9 +11,10 @@ const OptionsSchema = z
   .strict();
 
 const normalQuizZodType = z.object({
-  options: OptionsSchema,
+  type: z.nativeEnum(QuizType),
+  options: OptionsSchema.optional(),
   question: z.string(),
-  rightAnswer: z.nativeEnum(RightAnswer),
+  rightAnswer: z.string(),
 });
 
 const updateContent = z.object({
@@ -107,7 +108,8 @@ const updateQuiz = z.object({
     .object({
       options: OptionsSchema.optional(),
       question: z.string().optional(),
-      rightAnswer: z.nativeEnum(RightAnswer).optional(),
+      rightAnswer: z.string().optional(),
+      type: z.nativeEnum(QuizType)
     })
     .strict(),
 });

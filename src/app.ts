@@ -19,6 +19,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3001",
+      "http://localhost:3005",
       "http://localhost:3000",
       "https://saifghori.code-commando.com",
       "http://206.162.244.139:3005",

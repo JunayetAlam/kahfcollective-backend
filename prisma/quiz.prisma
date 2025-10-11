@@ -1,0 +1,53 @@
+model Quiz {
+    id              String   @id @default(auto()) @map("_id") @db.ObjectId
+    type            QuizType
+    courseContentId String   @db.ObjectId
+    instructorId    String   @db.ObjectId
+    question        String
+    options         Options?
+    rightAnswer     String
+    isDeleted       Boolean  @default(false)
+    index           Int
+
+    courseContent CourseContents @relation(fields: [courseContentId], references: [id])
+    instructor    User           @relation(fields: [instructorId], references: [id])
+
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    quizAnswers QuizAnswers[]
+
+    @@map("quizzes")
+}
+
+model QuizAnswers {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    quizId    String   @db.ObjectId
+    userId    String   @db.ObjectId
+    answer    String
+    isRight   Boolean?
+    isMarked  Boolean?
+    isDeleted Boolean  @default(false)
+    isLocked  Boolean  @default(false)
+
+    quiz Quiz @relation(fields: [quizId], references: [id])
+    user User @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([quizId, userId])
+    @@map("quiz_answers")
+}
+
+enum QuizType {
+    MULTIPLE_CHOICE
+    WRITE_ANSWER
+}
+
+type Options {
+    A String
+    B String
+    C String
+    D String
+}

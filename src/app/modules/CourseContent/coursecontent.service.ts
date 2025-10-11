@@ -378,12 +378,12 @@ const updateAnswerStatus = async (
     userRole === 'SUPER_ADMIN'
       ? { id: payload.answerId } // Super Admin: Just check the answer ID
       : {
-          // Instructor: Check answer ID AND that the user is the content instructor
-          id: payload.answerId,
-          question: {
-            instructorId: userId,
-          },
-        };
+        // Instructor: Check answer ID AND that the user is the content instructor
+        id: payload.answerId,
+        question: {
+          instructorId: userId,
+        },
+      };
 
   // 1. Find the answer and the associated question/content
   // const answerRecord = await prisma.questionAnswer.findFirst({
@@ -466,16 +466,23 @@ const createQuiz = async (
   userId: string,
   role: UserRoleEnum,
 ) => {
-  const quizOptions = payload.options;
-  const values = Object.values(quizOptions);
-  const hasDuplicates = new Set(values).size !== values.length;
+  console.log(payload)
+  if (payload.type === 'MULTIPLE_CHOICE') {
+    const quizOptions = payload.options;
+    if (!quizOptions) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Quiz Option is Required')
+    }
+    const values = Object.values(quizOptions);
+    const hasDuplicates = new Set(values).size !== values.length;
 
-  if (hasDuplicates) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Quiz options must all be different.',
-    );
+    if (hasDuplicates) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Quiz options must all be different.',
+      );
+    }
   }
+
   const isCourseContentExist = await prisma.courseContents.findUnique({
     where: {
       id: payload.courseContentId,
@@ -494,27 +501,26 @@ const createQuiz = async (
     },
   });
 
-  const result = await prisma.quiz.create({
-    data: {
-      index: count + 1,
-      options: payload.options,
-      question: payload.question,
-      rightAnswer: payload.rightAnswer,
-      courseContentId: payload.courseContentId,
-      instructorId: isCourseContentExist.instructorId,
-    },
-  });
-  return result;
+  // const result = await prisma.quiz.create({
+  //   data: {
+  //     ...payload,
+  //     index: count + 1,
+  //     instructorId: isCourseContentExist.instructorId,
+
+  //   },
+  // });
+  // return result;
 };
 
 const updateQuiz = async (
   id: string,
-  payload: Partial<Pick<Quiz, 'question' | 'options' | 'rightAnswer'>>,
+  payload: Partial<Pick<Quiz, 'question' | 'options' | 'rightAnswer' | 'type'>>,
   userId: string,
   role: UserRoleEnum,
 ) => {
-  const quizOptions = payload?.options;
-  if (quizOptions) {
+  if (payload.type === 'MULTIPLE_CHOICE') {
+    const quizOptions = payload?.options;
+    if (!quizOptions) throw new AppError(httpStatus.BAD_REQUEST, 'Quiz Option is required')
     const values = Object.values(quizOptions);
     const hasDuplicates = new Set(values).size !== values.length;
 
@@ -525,6 +531,7 @@ const updateQuiz = async (
       );
     }
   }
+
   const result = await prisma.quiz.update({
     where: {
       id,

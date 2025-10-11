@@ -2,9 +2,9 @@ import { QuizAnswers } from '@prisma/client';
 import httpStatus from 'http-status';
 import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
-
 //isQuiz exist, isContentExist, isCourse enrolled, isPreviousAnswerDone, isQuizAnswerLocked,  
 const ansQuiz = async (userId: string, payload: QuizAnswers) => {
+
     const isQuizExist = await prisma.quiz.findUnique({
         where: {
             id: payload.quizId,
@@ -24,6 +24,7 @@ const ansQuiz = async (userId: string, payload: QuizAnswers) => {
             id: true,
             index: true,
             rightAnswer: true,
+            type: true,
         }
     });
     if (!isQuizExist) {
@@ -77,13 +78,10 @@ const ansQuiz = async (userId: string, payload: QuizAnswers) => {
             },
             data: {
                 answer: payload.answer,
-                rightAnswer: isQuizExist.rightAnswer,
-                isRight: payload.answer === isQuizExist.rightAnswer
             },
             select: {
                 id: true,
                 answer: true,
-
             }
         });
     }
@@ -94,8 +92,6 @@ const ansQuiz = async (userId: string, payload: QuizAnswers) => {
             answer: payload.answer,
             quizId: payload.quizId,
             userId,
-            rightAnswer: isQuizExist.rightAnswer,
-            isRight: payload.answer === isQuizExist.rightAnswer
         },
         select: {
             id: true,
@@ -121,7 +117,7 @@ const LockQuiz = async (userId: string, contentId: string) => {
                     id: true,
                     index: true,
                     question: true,
-                    rightAnswer: true
+                    rightAnswer: true,
                 }
             }
         }
@@ -182,7 +178,7 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
         select: {
             quizzes: {
                 where: { isDeleted: false },
-                select: { id: true, index: true, question: true, rightAnswer: true },
+                select: { id: true, index: true, question: true, rightAnswer: true, type: true },
                 orderBy: { index: 'asc' }
             }
         }
@@ -205,7 +201,8 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
             answer: true,
             isRight: true,
             isLocked: true,
-            id: true
+            id: true,
+            isMarked: true
         }
     });
 
@@ -213,12 +210,18 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
     if (content.quizzes.length !== userAnswers.length || notAnsweredQues) {
         return { isAllAnswered: false }
     }
+    const isAllMarked = !userAnswers.find(item => item.isMarked !== true);
+
+
 
     const result = {
         isAllAnswered: true,
-        total: content.quizzes.length,
-        correct: userAnswers.filter(a => a.isRight).length,
-        incorrect: userAnswers.filter(a => !a.isRight).length,
+        isAllMarked: !!isAllMarked,
+        ...(isAllMarked && {
+            total: content.quizzes.length,
+            correct: userAnswers.filter(a => a.isRight).length,
+            incorrect: userAnswers.filter(a => !a.isRight).length,
+        }),
         answers: content.quizzes.map(q => {
             const userAns = userAnswers.find(a => a.quizId === q.id);
             return {
@@ -227,9 +230,13 @@ const getResultOfAQuizContents = async (userId: string, contentId: string) => {
                 answerId: userAns?.id || null,
                 question: q.question,
                 userAnswer: userAns?.answer || null,
-                isRight: userAns?.isRight || false,
+                type: q.type,
                 isLocked: userAns?.isLocked || false,
-                correctAnswer: userAns?.isLocked ? q.rightAnswer : undefined
+
+                ...(isAllMarked && {
+                    correctAnswer: userAns?.isLocked ? q.rightAnswer : undefined,
+                    isRight: userAns?.isRight || false,
+                })
             };
         })
     };
@@ -250,9 +257,14 @@ const getSingleQuizWithUserAnswer = async (userId: string, quizId: string) => {
             id: true,
             isLocked: true,
             isRight: true,
-            rightAnswer: true,
             answer: true,
+            isMarked: true,
             quizId: true,
+            quiz: {
+                select: {
+                    rightAnswer: true
+                }
+            }
         }
     });
     if (!quizAnswers) {
@@ -264,19 +276,110 @@ const getSingleQuizWithUserAnswer = async (userId: string, quizId: string) => {
         answer: quizAnswers?.answer,
         quizId: quizAnswers?.quizId,
         isLocked: quizAnswers?.isLocked,
-        ...(quizAnswers?.isLocked && {
+        isMarked: quizAnswers?.isMarked || false,
+        ...(quizAnswers?.isLocked && quizAnswers.isMarked && {
             isRight: quizAnswers.isRight,
-            rightAnswer: quizAnswers.rightAnswer
+            rightAnswer: quizAnswers.quiz.rightAnswer
         })
     }
 
 };
 
+const markQuizAnswer = async (id: string, isRight: boolean) => {
+    return await prisma.quizAnswers.update({
+        where: {
+            id,
+            isLocked: true
+        },
+        data: {
+            isRight: isRight,
+            isMarked: true
+        }
+    })
+}
+
+const getAllQuizAnswersGrouped = async (page: number = 1, limit: number = 10) => {
+
+    const total = await prisma.quizAnswers.count({
+        where: {
+            isDeleted: false
+        }
+    });
+    const quizAnswers = await prisma.quizAnswers.findMany({
+        where: {
+            isDeleted: false
+        },
+        select: {
+            id: true,
+            userId: true,
+            quizId: true,
+            answer: true,
+            isRight: true,
+            isMarked: true,
+            isLocked: true,
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    profile: true
+                }
+            },
+            quiz: {
+                select: {
+                    id: true,
+                    question: true,
+                    rightAnswer: true,
+                    options: true,
+                    courseContentId: true,
+                    courseContent: {
+                        select: {
+                            course: {
+                                select: {
+                                    id: true,
+                                    title: true,
+                                }
+                            },
+                            title: true
+                        }
+                    }
+                }
+            }
+        },
+    });
+
+    // Group by userId and quizId combination
+    const groupMap = new Map<string, typeof quizAnswers>();
+
+    quizAnswers.forEach(answer => {
+        const key = `${answer.userId}_${answer.quiz.courseContentId}`;
+        if (!groupMap.has(key)) {
+            groupMap.set(key, []);
+        }
+        groupMap.get(key)!.push(answer);
+    });
+
+    const groups = Array.from(groupMap.entries()).map(([key, answers]) => ({
+        groupKey: key,
+        userId: answers[0].userId,
+        quizId: answers[0].quizId,
+        courseId: answers[0].quiz.courseContent.course.id,
+        userName: answers[0].user.fullName,
+        userProfile: answers[0].user.profile,
+        courseContentId: answers[0].quiz.courseContentId,
+        courseContentTitle: answers[0].quiz.courseContent.title,
+        courseTitle: answers[0].quiz.courseContent.course.title,
+        mark: answers.find(item => item.isMarked !== true) ? 'Not Marked All' : (answers.filter(item => item.isRight).length / answers.length) * 100
+    }));
+
+    return groups
+};
 
 
 export const QuizAnswerService = {
     ansQuiz,
     LockQuiz,
     getResultOfAQuizContents,
-    getSingleQuizWithUserAnswer
+    getSingleQuizWithUserAnswer,
+    markQuizAnswer,
+    getAllQuizAnswersGrouped,
 };

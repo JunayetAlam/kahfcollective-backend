@@ -15,6 +15,17 @@ router.post(
   validateRequest.body(quizAnswerValidation.ansQuiz),
   QuizAnswerControllers.ansQuiz,
 );
+router.post(
+  '/mark',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  QuizAnswerControllers.markQuizAnswer,
+);
+
+router.get(
+  '/quiz-answers',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  QuizAnswerControllers.getAllQuizAnswers,
+);
 
 // Lock all quizzes for a content
 router.post(
@@ -36,5 +47,6 @@ router.get(
   auth('USER'),
   QuizAnswerControllers.getSingleQuiz,
 );
+
 
 export const QuizAnswerRouters = router;
