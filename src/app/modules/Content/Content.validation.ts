@@ -7,6 +7,7 @@ const createContent = z.object({
       contentType: z.nativeEnum(ContentTypeEnum),
       title: z.string(),
       description: z.string(),
+      type: z.string().optional(),
       tierId: z.string(),
       authorId: z.string(),
     })
@@ -19,6 +20,7 @@ const updateContent = z.object({
       contentType: z.nativeEnum(ContentTypeEnum).optional(),
       title: z.string().optional(),
       description: z.string().optional(),
+      type: z.string().optional(),
       tierId: z.string().optional(),
       authorId: z.string().optional(),
     })

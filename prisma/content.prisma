@@ -3,6 +3,7 @@ model Content {
     contentType ContentTypeEnum
     title       String
     description String
+    type        String?
     fileLink    String?
     coverImage  String?
     isFeatured  Boolean?
