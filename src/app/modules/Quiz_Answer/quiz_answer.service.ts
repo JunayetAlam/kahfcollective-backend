@@ -299,81 +299,279 @@ const markQuizAnswer = async (id: string, isRight: boolean) => {
 }
 
 const getAllQuizAnswersGrouped = async (page: number = 1, limit: number = 10) => {
+    const skip = (page - 1) * limit;
 
-    const total = await prisma.quizAnswers.count({
-        where: {
-            isDeleted: false
-        }
-    });
-    const quizAnswers = await prisma.quizAnswers.findMany({
-        where: {
-            isDeleted: false
+    // Use aggregation pipeline for efficient grouping and pagination
+    const pipeline = [
+        // Match non-deleted records
+        {
+            $match: {
+                isDeleted: false
+            }
         },
-        select: {
-            id: true,
-            userId: true,
-            quizId: true,
-            answer: true,
-            isRight: true,
-            isMarked: true,
-            isLocked: true,
-            user: {
-                select: {
-                    id: true,
-                    fullName: true,
-                    profile: true
-                }
-            },
-            quiz: {
-                select: {
-                    id: true,
-                    question: true,
-                    rightAnswer: true,
-                    options: true,
-                    courseContentId: true,
-                    courseContent: {
-                        select: {
-                            course: {
-                                select: {
-                                    id: true,
-                                    title: true,
-                                }
+        // Lookup user data
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'user'
+            }
+        },
+        {
+            $unwind: '$user'
+        },
+        // Lookup quiz data
+        {
+            $lookup: {
+                from: 'quizzes',
+                localField: 'quizId',
+                foreignField: '_id',
+                as: 'quiz'
+            }
+        },
+        {
+            $unwind: '$quiz'
+        },
+        // Lookup course content
+        {
+            $lookup: {
+                from: 'course_contents',
+                localField: 'quiz.courseContentId',
+                foreignField: '_id',
+                as: 'courseContent'
+            }
+        },
+        {
+            $unwind: '$courseContent'
+        },
+        // Lookup course
+        {
+            $lookup: {
+                from: 'courses',
+                localField: 'courseContent.courseId',
+                foreignField: '_id',
+                as: 'course'
+            }
+        },
+        {
+            $unwind: '$course'
+        },
+        // Group by userId and courseContentId
+        {
+            $group: {
+                _id: {
+                    userId: '$userId',
+                    courseContentId: '$quiz.courseContentId'
+                },
+                userId: { $first: '$userId' },
+                userName: { $first: '$user.fullName' },
+                userProfile: { $first: '$user.profile' },
+                courseContentId: { $first: '$quiz.courseContentId' },
+                courseContentTitle: { $first: '$courseContent.title' },
+                courseId: { $first: '$course._id' },
+                courseTitle: { $first: '$course.title' },
+                quizId: { $first: '$quizId' },
+                totalAnswers: { $sum: 1 },
+                correctAnswers: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $eq: ['$isMarked', true] },
+                                    { $eq: ['$isRight', true] }
+                                ]
                             },
-                            title: true
-                        }
+                            1,
+                            0
+                        ]
+                    }
+                },
+                notMarkedCount: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $or: [
+                                    { $eq: ['$isMarked', false] },
+                                    { $eq: ['$isMarked', null] },
+                                    { $eq: [{ $type: '$isMarked' }, 'missing'] }
+                                ]
+                            },
+                            1,
+                            0
+                        ]
+                    }
+                },
+                answers: {
+                    $push: {
+                        id: '$_id',
+                        answer: '$answer',
+                        isRight: '$isRight',
+                        isMarked: '$isMarked',
+                        isLocked: '$isLocked'
                     }
                 }
             }
         },
-    });
-
-    // Group by userId and quizId combination
-    const groupMap = new Map<string, typeof quizAnswers>();
-
-    quizAnswers.forEach(answer => {
-        const key = `${answer.userId}_${answer.quiz.courseContentId}`;
-        if (!groupMap.has(key)) {
-            groupMap.set(key, []);
+        // Add computed fields
+        {
+            $addFields: {
+                groupKey: {
+                    $concat: [
+                        { $toString: '$userId' },
+                        '_',
+                        { $toString: '$courseContentId' }
+                    ]
+                },
+                mark: {
+                    $cond: [
+                        { $gt: ['$notMarkedCount', 0] },
+                        'Not Marked All',
+                        {
+                            $multiply: [
+                                { $divide: ['$correctAnswers', '$totalAnswers'] },
+                                100
+                            ]
+                        }
+                    ]
+                },
+                correctAnswersDisplay: {
+                    $cond: [
+                        { $gt: ['$notMarkedCount', 0] },
+                        'Not Marked All',
+                        '$correctAnswers'
+                    ]
+                }
+            }
+        },
+        // Sort for consistent pagination
+        {
+            $sort: {
+                userId: 1,
+                courseContentId: 1
+            }
+        },
+        // Facet for pagination and total count
+        {
+            $facet: {
+                metadata: [
+                    { $count: 'total' }
+                ],
+                data: [
+                    { $skip: skip },
+                    { $limit: limit }
+                ]
+            }
         }
-        groupMap.get(key)!.push(answer);
-    });
+    ];
 
-    const groups = Array.from(groupMap.entries()).map(([key, answers]) => ({
-        groupKey: key,
-        userId: answers[0].userId,
-        quizId: answers[0].quizId,
-        courseId: answers[0].quiz.courseContent.course.id,
-        userName: answers[0].user.fullName,
-        userProfile: answers[0].user.profile,
-        courseContentId: answers[0].quiz.courseContentId,
-        courseContentTitle: answers[0].quiz.courseContent.title,
-        courseTitle: answers[0].quiz.courseContent.course.title,
-        mark: answers.find(item => item.isMarked !== true) ? 'Not Marked All' : (answers.filter(item => item.isRight).length / answers.length) * 100
+    const result = await prisma.quizAnswers.aggregateRaw({
+        pipeline
+    }) as any;
+
+    const total = result[0]?.metadata[0]?.total || 0;
+    const groups = result[0]?.data || [];
+
+    // Format the response
+    const formattedGroups = groups.map((group: any) => ({
+        groupKey: group.groupKey,
+        userId: group.userId.$oid,
+        quizId: group.quizId.$oid,
+        courseId: group.courseId.$oid,
+        userName: group.userName,
+        userProfile: group.userProfile,
+        courseContentId: group.courseContentId.$oid,
+        courseContentTitle: group.courseContentTitle,
+        courseTitle: group.courseTitle,
+        mark: group.mark,
+        totalAnswers: group.totalAnswers,
+        correctAnswers: group.correctAnswersDisplay
     }));
-
-    return groups
+    return {
+        data: formattedGroups,
+        meta: {
+            page,
+            limit,
+            total,
+            totalPage: Math.ceil(total / limit)
+        }
+    };
 };
 
+const getResultOfAQuizContentsInstructor = async (userId: string, contentId: string) => {
+    // Fetch quiz content
+    const content = await prisma.courseContents.findUnique({
+        where: {
+            id: contentId,
+            isDeleted: false,
+            type: 'QUIZ',
+        },
+        select: {
+            quizzes: {
+                where: { isDeleted: false },
+                select: { id: true, index: true, question: true, rightAnswer: true, type: true, options: true },
+                orderBy: { index: 'asc' }
+            }
+        }
+    });
+
+    if (!content) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Quiz Content not found');
+    }
+
+    // Fetch user's answers for this content
+    const userAnswers = await prisma.quizAnswers.findMany({
+        where: {
+            userId,
+            quizId: {
+                in: content.quizzes.map(q => q.id)
+            }
+        },
+        select: {
+            quizId: true,
+            answer: true,
+            isRight: true,
+            isLocked: true,
+            id: true,
+            isMarked: true
+        }
+    });
+
+    const notAnsweredQues = userAnswers.find(item => item.isLocked === false);
+    const allNotAnswered = content.quizzes.length !== userAnswers.length || notAnsweredQues
+    const isAllMarked = !userAnswers.find(item => item.isMarked !== true);
+
+
+    const total = content.quizzes.length;
+    const correct = userAnswers.filter(a => a.isRight).length;
+    const incorrect = userAnswers.filter(a => !a.isRight).length;
+    const markPercent = total > 0 ? (correct / total) * 100 : 0;
+    const result = {
+        isAllAnswered: !allNotAnswered,
+        isAllMarked: !!isAllMarked,
+        total,
+        correct,
+        incorrect,
+        markPercent,
+        answers: content.quizzes.map(q => {
+            const userAns = userAnswers.find(a => a.quizId === q.id);
+            return {
+                quizId: q.id,
+                index: q.index,
+                isAnswered: !!userAns,
+                answerId: userAns?.id || null,
+                question: q.question,
+                userAnswer: userAns?.answer || null,
+                type: q.type,
+                isLocked: userAns?.isLocked || false,
+                correctAnswer: q.rightAnswer,
+                isRight: typeof userAns?.isRight === 'boolean' ? userAns?.isRight : null,
+                options: q.options,
+            };
+        })
+    };
+    return result;
+};
 
 export const QuizAnswerService = {
     ansQuiz,
@@ -382,4 +580,5 @@ export const QuizAnswerService = {
     getSingleQuizWithUserAnswer,
     markQuizAnswer,
     getAllQuizAnswersGrouped,
+    getResultOfAQuizContentsInstructor
 };

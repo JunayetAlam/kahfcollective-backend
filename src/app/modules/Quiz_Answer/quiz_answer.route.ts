@@ -40,6 +40,11 @@ router.get(
   auth('USER'),
   QuizAnswerControllers.getQuizResult,
 );
+router.get(
+  '/result-instructor',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  QuizAnswerControllers.getResultOfAQuizContentsInstructor,
+);
 
 // Get a single quiz with user's answer
 router.get(

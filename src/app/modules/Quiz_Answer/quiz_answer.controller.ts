@@ -18,10 +18,9 @@ const ansQuiz = catchAsync(async (req: Request, res) => {
   });
 });
 const markQuizAnswer = catchAsync(async (req: Request, res) => {
-  const userId = req.user.id;
   const payload = req.body;
 
-  const result = await QuizAnswerService.markQuizAnswer(userId, payload.isRight);
+  const result = await QuizAnswerService.markQuizAnswer(payload.quizAnswerId, payload.isRight);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -57,6 +56,17 @@ const getQuizResult = catchAsync(async (req: Request, res) => {
     data: result,
   });
 });
+const getResultOfAQuizContentsInstructor = catchAsync(async (req: Request, res) => {
+  const { contentId, userId } = req.query;
+
+  const result = await QuizAnswerService.getResultOfAQuizContentsInstructor(userId as string, contentId as string);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Quiz result fetched successfully',
+    data: result,
+  });
+});
 
 // Get a single quiz with user's answer
 const getSingleQuiz = catchAsync(async (req: Request, res) => {
@@ -77,8 +87,8 @@ const getAllQuizAnswers = catchAsync(async (req: Request, res) => {
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Quiz fetched successfully',
-    data: result,
+    message: 'Quiz result fetched successfully',
+    ...result,
   });
 });
 
@@ -88,5 +98,6 @@ export const QuizAnswerControllers = {
   lockQuiz,
   getQuizResult,
   getSingleQuiz,
-  getAllQuizAnswers
+  getAllQuizAnswers,
+  getResultOfAQuizContentsInstructor
 };

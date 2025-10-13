@@ -229,7 +229,6 @@ const updateQuestionContent = async (
     },
   });
 
-  console.log(existingContent);
 
   if (!existingContent || !existingContent.course) {
     throw new AppError(
@@ -286,7 +285,6 @@ const updateQuestionContent = async (
 };
 
 const answerQuestionContent = async (payload: any, userId: string) => {
-  console.log(payload);
   const isQuestionExist = await prisma.question.findUnique({
     where: {
       id: payload.questionId,
@@ -305,7 +303,6 @@ const answerQuestionContent = async (payload: any, userId: string) => {
 
   const isAlreadyAnswered = !(isQuestionExist.questionAnswers.length == 0);
 
-  console.log({ isAlreadyAnswered });
 
   if (isAlreadyAnswered) {
     throw new AppError(httpStatus.NOT_FOUND, 'Already answered');
@@ -466,7 +463,6 @@ const createQuiz = async (
   userId: string,
   role: UserRoleEnum,
 ) => {
-  console.log(payload)
   if (payload.type === 'MULTIPLE_CHOICE') {
     const quizOptions = payload.options;
     if (!quizOptions) {
@@ -722,6 +718,16 @@ const getAllQuizForSpecificCourseContentForUser = async (
       rightAnswer: true,
       updatedAt: true,
     },
+    include: {
+      quizAnswers: {
+        where: {
+          userId: userId,
+        },
+        select: {
+          answer: true
+        }
+      }
+    }
   });
 
   return quizzes;

@@ -83,8 +83,9 @@ const getAllCourses = async ({
         select: {
           courseContents: {
             where: {
-              type: 'VIDEO',
-            },
+              isDeleted: false,
+              status: 'PUBLISHED'
+            }
           },
           enrollCourses: true,
         },
