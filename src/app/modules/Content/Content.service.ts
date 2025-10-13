@@ -40,7 +40,7 @@ const createContent = async (
     }
   }
 
-  
+
 
   const content = await prisma.content.create({
     data: {
@@ -137,6 +137,8 @@ const getAllContents = async (query: any, role: UserRoleEnum, userId: string) =>
       coverImage: true,
       createdAt: true,
       isFeatured: true,
+      type: true,
+      authorId: true,
       fileLink: true,
       id: true,
       title: true,
