@@ -160,7 +160,7 @@ const updateProfileImg = async (id: string, previousImg: string, req: Request, f
     if (previousImg) {
       deleteFromDigitalOceanAWS(previousImg)
     }
-    req.user.profile = location;
+    req.user.profile = Location;
     return result
   }
   throw new AppError(httpStatus.NOT_FOUND, 'Please provide image')
