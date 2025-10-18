@@ -94,7 +94,7 @@ model CompleteCourse {
     updatedAt DateTime @updatedAt
 
     @@unique([courseId, userId])
-    @@map("course")
+    @@map("complete_courses")
 }
 
 enum CourseContentTypeEnum {
