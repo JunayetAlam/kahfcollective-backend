@@ -209,6 +209,7 @@ const getAllQuizForSpecificCourseContentForUser = catchAsync(
       await CoursecontentService.getAllQuizForSpecificCourseContentForUser(
         courseContentId,
         req.user.id,
+        req.user.role,
       );
 
     sendResponse(res, {
