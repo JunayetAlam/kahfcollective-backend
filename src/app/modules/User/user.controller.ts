@@ -77,7 +77,7 @@ const updateProfileImage = catchAsync(async (req: Request, res) => {
 const updateUserRoleStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const role = req.body.role;
-  const result = await UserServices.updateUserRoleStatusIntoDB(id, role);
+  const result = await UserServices.updateUserRoleStatusIntoDB(id, role, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -89,7 +89,7 @@ const updateUserRoleStatus = catchAsync(async (req, res) => {
 const updateUserStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const status = req.body.status;
-  const result = await UserServices.updateProfileStatus(id, status);
+  const result = await UserServices.updateProfileStatus(id, status, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -99,11 +99,21 @@ const updateUserStatus = catchAsync(async (req, res) => {
 });
 const toggleIsUserVerified = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await UserServices.toggleIsUserVerified(id);
+  const result = await UserServices.toggleIsUserVerified(id, req.user.id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'User verifyStatus Update successfully',
+    data: result,
+  });
+});
+const deleteUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await UserServices.deleteUser(id, req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'User Deleted successfully',
     data: result,
   });
 });
@@ -118,5 +128,6 @@ export const UserControllers = {
   updateProfileImage,
   updateUserRoleStatus,
   updateUserStatus,
-  toggleIsUserVerified
+  toggleIsUserVerified,
+  deleteUser
 };

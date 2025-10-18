@@ -30,6 +30,7 @@ model User {
   isUserVerified                Boolean   @default(false)
   expireIn                      DateTime?
   isEmailVerified               Boolean   @default(false)
+  isDeleted                     Boolean?  @default(false)
   emailVerificationToken        String?
   emailVerificationTokenExpires DateTime?
 

@@ -6,6 +6,7 @@ export const verifyOtp = async (payload: { email: string; otp: string }) => {
     const userData = await prisma.user.findFirstOrThrow({
         where: {
             email: payload.email,
+            isDeleted: false
         },
         select: {
             otp: true,

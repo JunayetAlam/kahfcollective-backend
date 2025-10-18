@@ -694,6 +694,7 @@ const getAllQuizForSpecificCourseContent = async (
 const getAllQuizForSpecificCourseContentForUser = async (
   courseContentId: string,
   userId: string,
+  role: UserRoleEnum
 ) => {
   const isCourseContentExist = await prisma.courseContents.findUnique({
     where: {
@@ -714,20 +715,22 @@ const getAllQuizForSpecificCourseContentForUser = async (
     orderBy: {
       index: 'asc',
     },
-    omit: {
-      rightAnswer: true,
-      updatedAt: true,
-    },
-    include: {
-      quizAnswers: {
-        where: {
-          userId: userId,
-        },
-        select: {
-          answer: true
+    ...(role === 'USER' && {
+      omit: {
+        rightAnswer: true,
+        updatedAt: true,
+      },
+      include: {
+        quizAnswers: {
+          where: {
+            userId: userId,
+          },
+          select: {
+            answer: true
+          }
         }
       }
-    }
+    })
   });
 
   return quizzes;
@@ -754,14 +757,14 @@ const getSingleQuiz = async (
 };
 
 // 4a. Get single quiz (for normal users)
-const getSingleQuizForUser = async (quizId: string, userId: string) => {
+const getSingleQuizForUser = async (quizId: string, userId: string, role: UserRoleEnum) => {
   const quiz = await prisma.quiz.findUnique({
     where: {
       id: quizId,
       isDeleted: false,
     },
     omit: {
-      rightAnswer: true,
+      ...(role === 'USER' && { rightAnswer: true })
     },
     include: {
       courseContent: {

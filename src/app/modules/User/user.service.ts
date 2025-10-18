@@ -8,6 +8,7 @@ import AppError from '../../errors/AppError';
 import { deleteFromDigitalOceanAWS, uploadToDigitalOceanAWS } from '../../utils/uploadToDigitalOceanAWS';
 
 const getAllUsersFromDB = async (query: any) => {
+  query.isDeleted = false
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
   const result = await usersQuery
     .search(['fullName', 'email'])
@@ -109,7 +110,7 @@ const getMyProfileFromDB = async (id: string) => {
 
 const getUserDetailsFromDB = async (id: string) => {
   const user = await prisma.user.findUniqueOrThrow({
-    where: { id },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       address: true,
@@ -183,10 +184,14 @@ const updateMyProfileIntoDB = async (
   return result
 };
 
-const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum) => {
+const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum, myId: string) => {
+  if (id === myId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own role')
+  }
   const result = await prisma.user.update({
     where: {
       id: id,
+      isDeleted: false
     },
     data: {
       role: role
@@ -194,10 +199,14 @@ const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum) => {
   });
   return result;
 };
-const updateProfileStatus = async (id: string, status: UserStatus) => {
+const updateProfileStatus = async (id: string, status: UserStatus, myId: string) => {
+  if (id === myId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own status')
+  }
   const result = await prisma.user.update({
     where: {
-      id
+      id,
+      isDeleted: false
     },
     data: {
       status
@@ -213,7 +222,7 @@ const updateProfileStatus = async (id: string, status: UserStatus) => {
 
 const isUserExist = async (id: string) => {
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id, isDeleted: false },
     select: {
       id: true
     }
@@ -224,13 +233,15 @@ const isUserExist = async (id: string) => {
   return user
 }
 
-const toggleIsUserVerified = async (id: string) => {
-
+const toggleIsUserVerified = async (id: string, myId: string) => {
+  if (id === myId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own status')
+  }
   const result = await prisma.$runCommandRaw({
     update: "users",
     updates: [
       {
-        q: { _id: { $oid: id } },
+        q: { _id: { $oid: id }, isDeleted: false },
         u: [{ $set: { isUserVerified: { $not: "$isUserVerified" } } }],
       },
     ],
@@ -253,6 +264,29 @@ const expireUserMonthlySubscription = async () => {
   });
 };
 
+const deleteUser = async (id: string, myId: string) => {
+  if (id === myId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot remove yourself')
+  }
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id, isDeleted: false },
+  });
+  if (user.role === 'SUPERADMIN') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Super Admin Cannot deletable')
+  }
+  const deleteUser = await prisma.user.update({
+    where: { id },
+    data: {
+      isDeleted: true,
+      status: 'ACTIVE',
+      isEmailVerified: false,
+      isUserVerified: false,
+      emailVerificationToken: '',
+    }
+  });
+  return deleteUser
+};
+
 
 
 
@@ -269,5 +303,6 @@ export const UserServices = {
   isUserExist,
   toggleIsUserVerified,
   expireUserMonthlySubscription,
-  getTierUsers
+  getTierUsers,
+  deleteUser
 };

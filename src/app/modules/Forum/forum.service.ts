@@ -106,7 +106,7 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
     const forum = await prisma.forum.findUnique({
         where: {
             id,
-            ...(role === 'USER' && { isDeleted: false }),
+            isDeleted: false
         },
         select: {
             id: true,

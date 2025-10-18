@@ -224,6 +224,7 @@ const getSingleQuizForUser = catchAsync(async (req, res) => {
   const result = await CoursecontentService.getSingleQuizForUser(
     quizId,
     req.user.id,
+    req.user.role,
   );
 
   sendResponse(res, {

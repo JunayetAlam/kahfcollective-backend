@@ -18,11 +18,16 @@ const loginUserFromDB = async (
     password: string;
   },
 ) => {
-  const userData = await insecurePrisma.user.findUniqueOrThrow({
+  const userData = await insecurePrisma.user.findUnique({
     where: {
       email: payload.email,
+      isDeleted: false
     },
   });
+  console.log(payload?.email)
+  if (!userData) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found. Please Sign up.')
+  }
 
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.password,
@@ -49,7 +54,7 @@ const loginUserFromDB = async (
     const verificationLink = `${config.base_url_client}/auth/verify-email?token=${verificationToken}`;
 
     await prisma.user.update({
-      where: { email: userData.email },
+      where: { email: userData.email, isDeleted: false },
       data: {
         emailVerificationToken: verificationToken,
         emailVerificationTokenExpires: new Date(
@@ -100,7 +105,8 @@ const registerUserIntoDB = async (payload: User) => {
 
   const isUserExistWithTheGmail = await prisma.user.findFirst({
     where: {
-      OR: [{ email: payload.email }, { phoneNumber: payload.phoneNumber }],
+      OR: [{ email: payload.email, }, { phoneNumber: payload.phoneNumber }],
+      isDeleted: false
     },
     select: {
       id: true,
@@ -140,9 +146,19 @@ const registerUserIntoDB = async (payload: User) => {
     emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
 
+
+
   await prisma.$transaction(async tx => {
-    const newUser = await tx.user.create({
-      data: userData,
+    const newUser = await tx.user.upsert({
+      where: {
+        email: payload.email,
+        isDeleted: true
+      },
+      update: {
+        ...userData,
+        isDeleted: false
+      },
+      create: userData
     });
 
     const verificationLink = `${config.base_url_client}/auth/verify-email?token=${verificationToken}`;
@@ -178,6 +194,7 @@ const verifyEmail = async (payload: { token: string }) => {
   const user = await insecurePrisma.user.findUniqueOrThrow({
     where: {
       email: verifyUserToken.email,
+      isDeleted: false
     },
   });
 
@@ -209,6 +226,7 @@ const verifyEmail = async (payload: { token: string }) => {
   await prisma.user.update({
     where: {
       email: user.email,
+      isDeleted: false
     },
     data: {
       isEmailVerified: true,
@@ -242,6 +260,7 @@ const changePassword = async (user: any, payload: any) => {
     where: {
       email: user.email,
       status: 'ACTIVE',
+      isDeleted: false
     },
   });
 
@@ -259,6 +278,7 @@ const changePassword = async (user: any, payload: any) => {
   await prisma.user.update({
     where: {
       id: userData.id,
+      isDeleted: false
     },
     data: {
       password: hashedPassword,
@@ -272,7 +292,7 @@ const changePassword = async (user: any, payload: any) => {
 
 const resendUserVerificationEmail = async (email: string) => {
   const user = await insecurePrisma.user.findUniqueOrThrow({
-    where: { email: email },
+    where: { email: email, isDeleted: false },
   });
 
   if (user.status === 'BLOCKED') {
@@ -297,7 +317,7 @@ const resendUserVerificationEmail = async (email: string) => {
   const verificationLink = `${config.base_url_client}/auth/verify-email?token=${verificationToken}`;
 
   await prisma.user.update({
-    where: { email: email },
+    where: { email: email, isDeleted: false },
     data: {
       emailVerificationToken: verificationToken,
       emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
@@ -322,6 +342,7 @@ const forgetPassword = async (email: string) => {
   const userData = await prisma.user.findUniqueOrThrow({
     where: {
       email,
+      isDeleted: false
     },
     select: {
       status: true,
@@ -412,6 +433,7 @@ const resetPassword = async (payload: {
   const userData = await insecurePrisma.user.findFirstOrThrow({
     where: {
       email: decoded.email,
+      isDeleted: false
     },
   });
 
@@ -438,6 +460,7 @@ const resetPassword = async (payload: {
   await prisma.user.update({
     where: {
       email: decoded.email,
+      isDeleted: false
     },
     data: {
       password: newHashedPassword,

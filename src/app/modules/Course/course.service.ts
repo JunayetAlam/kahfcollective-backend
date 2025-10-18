@@ -39,8 +39,8 @@ const getAllCourses = async ({
   if (role === UserRoleEnum.INSTRUCTOR) {
     query.instructorId = userId;
   }
+  query.isDeleted = false;
   if (role === UserRoleEnum.USER) {
-    query.isDeleted = false;
     query.status = 'ACTIVE';
     query.enrollCourses = {
       some: {
@@ -231,7 +231,6 @@ const toggleDeleteCourse = async (
   const result = await toggleDelete(
     id,
     'courses',
-    role !== 'SUPERADMIN' ? { instructorId: userId } : {},
   );
   return result;
 };
@@ -307,6 +306,7 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
   const user = await prisma.user.findUniqueOrThrow({
     where: {
       id: userId,
+      isDeleted: false
     },
     select: {
       id: true,
@@ -372,6 +372,9 @@ const enrolledUserOnCourse = async (courseId: string) => {
   const result = await prisma.enrollCourse.findMany({
     where: {
       courseId,
+      user: {
+        isDeleted: false
+      }
     },
     select: {
       user: {

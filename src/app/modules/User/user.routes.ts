@@ -47,6 +47,11 @@ router.put(
   auth('SUPERADMIN'),
   UserControllers.toggleIsUserVerified,
 );
+router.delete(
+  '/:id',
+  auth('SUPERADMIN'),
+  UserControllers.deleteUser,
+);
 
 
 export const UserRouters = router;

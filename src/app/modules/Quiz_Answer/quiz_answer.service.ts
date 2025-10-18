@@ -306,7 +306,7 @@ const getAllQuizAnswersGrouped = async (page: number = 1, limit: number = 10) =>
         // Match non-deleted records
         {
             $match: {
-                isDeleted: false
+                isDeleted: false,
             }
         },
         // Lookup user data
@@ -320,6 +320,11 @@ const getAllQuizAnswersGrouped = async (page: number = 1, limit: number = 10) =>
         },
         {
             $unwind: '$user'
+        },
+        {
+            $match: {
+                'user.isDeleted': { $ne: true }
+            }
         },
         // Lookup quiz data
         {

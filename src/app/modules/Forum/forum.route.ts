@@ -45,7 +45,7 @@ router.patch(
 
 router.delete(
   '/:forumId',
-  auth('SUPERADMIN'),
+  auth('SUPERADMIN', 'INSTRUCTOR'),
   ForumController.deleteForum
 );
 
