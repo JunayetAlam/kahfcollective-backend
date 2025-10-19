@@ -15,6 +15,7 @@ router.post(
   upload.fields([
     { name: 'thumbnail', maxCount: 1 },
     { name: 'content', maxCount: 1 },
+    { name: 'articlePDF', maxCount: 1 },
   ]),
   parseBody,
   validateRequest.body(ContentValidation.createContent),
@@ -34,6 +35,7 @@ router.patch(
   upload.fields([
     { name: 'thumbnail', maxCount: 1 },
     { name: 'content', maxCount: 1 },
+    { name: 'articlePDF', maxCount: 1 },
   ]),
   parseBody,
   validateRequest.body(ContentValidation.updateContent),

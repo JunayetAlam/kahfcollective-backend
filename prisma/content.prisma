@@ -6,6 +6,7 @@ model Content {
     type        String?
     fileLink    String?
     coverImage  String?
+    articlePDF  String?
     isFeatured  Boolean?
 
     isDeleted Boolean @default(false)

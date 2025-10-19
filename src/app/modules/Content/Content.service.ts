@@ -14,8 +14,9 @@ import { UserServices } from '../User/user.service';
 // Create new content
 const createContent = async (
   payload: Content,
-  coverImageFile?: Express.Multer.File,
-  contentFile?: Express.Multer.File,
+  coverImageFile: Express.Multer.File | undefined,
+  contentFile: Express.Multer.File | undefined,
+  articlePDF: Express.Multer.File | undefined,
 ) => {
   await tierService.isTierExist(payload.tierId)
   await UserServices.isUserExist(payload.authorId)
@@ -26,6 +27,11 @@ const createContent = async (
     } else {
       payload.coverImage = (
         await uploadToDigitalOceanAWS(coverImageFile)
+      ).Location;
+    }
+    if (articlePDF) {
+      payload.articlePDF = (
+        await uploadToDigitalOceanAWS(articlePDF)
       ).Location;
     }
   }
@@ -135,6 +141,7 @@ const getAllContents = async (query: any, role: UserRoleEnum, userId: string) =>
       description: true,
       contentType: true,
       coverImage: true,
+      articlePDF: true,
       createdAt: true,
       isFeatured: true,
       type: true,
@@ -152,8 +159,9 @@ const getAllContents = async (query: any, role: UserRoleEnum, userId: string) =>
 const updateContent = async (
   id: string,
   payload: Partial<Omit<Content, 'id' | 'createdAt' | 'updatedAt'>>,
-  coverImageFile?: Express.Multer.File,
-  contentFile?: Express.Multer.File,
+  coverImageFile: Express.Multer.File | undefined,
+  contentFile: Express.Multer.File | undefined,
+  articlePDF: Express.Multer.File | undefined,
 ) => {
 
   if (payload.tierId) {
@@ -163,10 +171,17 @@ const updateContent = async (
     await UserServices.isUserExist(payload.authorId)
   }
 
-  if (payload?.contentType === 'ARTICLE' && coverImageFile) {
-    payload.coverImage = (
-      await uploadToDigitalOceanAWS(coverImageFile)
-    ).Location;
+  if (payload?.contentType === 'ARTICLE') {
+    if (coverImageFile) {
+      payload.coverImage = (
+        await uploadToDigitalOceanAWS(coverImageFile)
+      ).Location;
+    }
+    if (articlePDF) {
+      payload.articlePDF = (
+        await uploadToDigitalOceanAWS(articlePDF)
+      ).Location;
+    }
   }
 
   if (payload?.contentType === 'SERMONS' && contentFile) {
