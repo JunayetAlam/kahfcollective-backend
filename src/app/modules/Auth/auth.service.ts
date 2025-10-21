@@ -24,7 +24,6 @@ const loginUserFromDB = async (
       isDeleted: false
     },
   });
-  console.log(payload?.email)
   if (!userData) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found. Please Sign up.')
   }

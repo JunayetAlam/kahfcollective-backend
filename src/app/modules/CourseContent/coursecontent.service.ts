@@ -87,7 +87,6 @@ const updateFileContent = async (
   contentId: string,
   file: Express.Multer.File | undefined,
 ) => {
-  console.log(contentId)
   const isContentExist = await prisma.courseContents.findUnique({
     where: {
       id: contentId,
