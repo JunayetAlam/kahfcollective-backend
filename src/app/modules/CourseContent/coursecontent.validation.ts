@@ -1,4 +1,4 @@
-import { ContentStatusEnum, QuizType } from '@prisma/client';
+import { ContentStatusEnum, CourseContentTypeEnum, QuizType } from '@prisma/client';
 import { z } from 'zod';
 
 const OptionsSchema = z
@@ -31,6 +31,7 @@ const createVideoContent = z.object({
   body: z
     .object({
       courseId: z.string(),
+      type: z.nativeEnum(CourseContentTypeEnum),
       title: z.string(),
       description: z.string(),
       status: z.nativeEnum(ContentStatusEnum),

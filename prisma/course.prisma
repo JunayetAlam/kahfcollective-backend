@@ -23,65 +23,6 @@ model Course {
     @@map("courses")
 }
 
-model CourseContents {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
-
-    type         CourseContentTypeEnum
-    title        String
-    description  String
-    videoUrl     String?
-    quizzes      Quiz[]
-    status       ContentStatusEnum
-    isDeleted    Boolean               @default(false)
-    index        Int
-    courseId     String                @db.ObjectId
-    instructorId String                @db.ObjectId
-
-    course     Course @relation(fields: [courseId], references: [id])
-    instructor User   @relation(fields: [instructorId], references: [id])
-
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
-    courseQuestions Question?
-
-    @@map("course_contents")
-}
-
-model Question {
-    id              String @id @default(auto()) @map("_id") @db.ObjectId
-    question        String
-    courseContentId String @unique @db.ObjectId
-    instructorId    String @db.ObjectId
-
-    // Relations
-    courseContent   CourseContents   @relation(fields: [courseContentId], references: [id])
-    instructor      User             @relation("InstructorToQuestion", fields: [instructorId], references: [id])
-    questionAnswers QuestionAnswer[] @relation("QuestionToAnswer")
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@map("questions")
-}
-
-model QuestionAnswer {
-    id              String   @id @default(auto()) @map("_id") @db.ObjectId
-    questionId      String   @db.ObjectId
-    userId          String   @db.ObjectId
-    providedAnswer  String?
-    isCorrectAnswer Boolean?
-
-    // Relations
-    question Question @relation("QuestionToAnswer", fields: [questionId], references: [id])
-    user     User     @relation("UserToAnswer", fields: [userId], references: [id])
-
-    createdAt DateTime @default(now())
-
-    @@map("question_answers")
-}
-
-
-
 model CompleteCourse {
     id       String @id @default(auto()) @map("_id") @db.ObjectId
     courseId String @db.ObjectId
@@ -97,16 +38,7 @@ model CompleteCourse {
     @@map("complete_courses")
 }
 
-enum CourseContentTypeEnum {
-    VIDEO
-    QUIZ
-    QUESTION
-}
 
-enum ContentStatusEnum {
-    PUBLISHED
-    DRAFT
-}
 
 enum CourseStatus {
     DRAFT

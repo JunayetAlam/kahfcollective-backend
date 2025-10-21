@@ -1,0 +1,35 @@
+model CourseContents {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    type         CourseContentTypeEnum
+    title        String
+    description  String
+    videoUrl     String?
+    pdfUrl       String?
+    quizzes      Quiz[]
+    status       ContentStatusEnum
+    isDeleted    Boolean               @default(false)
+    index        Int
+    courseId     String                @db.ObjectId
+    instructorId String                @db.ObjectId
+
+    course     Course @relation(fields: [courseId], references: [id])
+    instructor User   @relation(fields: [instructorId], references: [id])
+
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+    courseQuestions Question?
+
+    @@map("course_contents")
+}
+
+enum CourseContentTypeEnum {
+    VIDEO
+    QUIZ
+    PDF
+}
+
+enum ContentStatusEnum {
+    PUBLISHED
+    DRAFT
+}

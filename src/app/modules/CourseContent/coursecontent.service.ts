@@ -20,21 +20,37 @@ const checkSuperAdmin = (role: UserRoleEnum, userId: string) => {
   }
 };
 
-const createVideoContent = async (
+const createFileContent = async (
   payload: Pick<
     CourseContents,
-    'courseId' | 'title' | 'description' | 'status'
+    'courseId' | 'title' | 'description' | 'status' | 'type'
   >,
-  video: Express.Multer.File | undefined,
+  file: Express.Multer.File | undefined,
   userId: string,
   role: UserRoleEnum,
 ) => {
-  if (!video) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide Video');
+
+  if (payload.type === 'VIDEO') {
+    if (!file) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide Video');
+    }
+    if (!file.mimetype.startsWith('video/')) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Only video files are allowed');
+    }
   }
-  if (!video.mimetype.startsWith('video/')) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Only video files are allowed');
+  else {
+    if (!file) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide PDF');
+    }
+    if (file.mimetype !== 'application/pdf') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Only pdf files are allowed');
+    }
   }
+
+
+
+
+
   const isCourseExist = await prisma.course.findUnique({
     where: {
       id: payload.courseId,
@@ -53,54 +69,67 @@ const createVideoContent = async (
     },
   });
 
-  const { Location } = await uploadToDigitalOceanAWS(video);
+  const { Location } = await uploadToDigitalOceanAWS(file);
   const result = await prisma.courseContents.create({
     data: {
       ...payload,
-      type: 'VIDEO',
       index: count + 1,
-      videoUrl: Location,
+      ...(payload.type === 'VIDEO' ? { videoUrl: Location } : { pdfUrl: Location }),
       instructorId: isCourseExist.instructorId,
     },
   });
   return result;
 };
 
-const updateVideo = async (
+const updateFileContent = async (
   userId: string,
   role: UserRoleEnum,
   contentId: string,
-  video: Express.Multer.File | undefined,
+  file: Express.Multer.File | undefined,
 ) => {
-  if (!video) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide Video');
-  }
-  if (!video.mimetype.startsWith('video/')) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Only video files are allowed');
-  }
-
+  console.log(contentId)
   const isContentExist = await prisma.courseContents.findUnique({
     where: {
       id: contentId,
-      type: 'VIDEO',
       ...checkSuperAdmin(role, userId),
     },
   });
   if (!isContentExist) {
     throw new AppError(httpStatus.NOT_FOUND, 'Content Not found');
   }
+  if (isContentExist.type === 'VIDEO') {
+    if (!file) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide Video');
+    }
+    if (!file.mimetype.startsWith('video/')) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Only video files are allowed');
+    }
+  }
+  else {
+    if (!file) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Please Provide PDF');
+    }
+    if (file.mimetype !== 'application/pdf') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Only pdf files are allowed');
+    }
+  }
 
-  const { Location } = await uploadToDigitalOceanAWS(video);
+
+
+  const { Location } = await uploadToDigitalOceanAWS(file);
 
   const result = await prisma.courseContents.update({
     where: {
       id: contentId,
     },
     data: {
-      videoUrl: Location,
+      ...(isContentExist.type === 'VIDEO' ? { videoUrl: Location } : { pdfUrl: Location }),
     },
   });
-  await deleteFromDigitalOceanAWS(isContentExist.videoUrl || '');
+  const deletingUrl = isContentExist.type === 'VIDEO' ? isContentExist.videoUrl : isContentExist.pdfUrl
+  if (deletingUrl) {
+    await deleteFromDigitalOceanAWS(deletingUrl);
+  }
   return result;
 };
 
@@ -151,219 +180,6 @@ const createQuizContent = async (
     },
   });
   return result;
-};
-
-const createQuestionContent = async (
-  payload: Pick<
-    CourseContents,
-    'courseId' | 'title' | 'description' | 'status'
-  > & { question: string },
-  userId: string,
-  role: UserRoleEnum,
-) => {
-  const isCourseExist = await prisma.course.findUnique({
-    where: {
-      id: payload.courseId,
-      ...checkSuperAdmin(role, userId),
-    },
-  });
-  if (!isCourseExist) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
-  }
-
-  // Get count for this specific course
-  const count = await prisma.courseContents.count({
-    where: {
-      courseId: payload.courseId,
-      isDeleted: false,
-    },
-  });
-
-  const result = await prisma.courseContents.create({
-    data: {
-      title: payload.title,
-      description: payload.description,
-      status: payload.status,
-      type: 'QUESTION',
-      index: count + 1,
-      courseId: payload.courseId,
-      courseQuestions: {
-        create: {
-          instructorId: isCourseExist.instructorId,
-          question: payload.question,
-        },
-      },
-      instructorId: userId,
-    },
-    include: {
-      courseQuestions: true,
-    },
-  });
-  return result;
-};
-
-const updateQuestionContent = async (
-  payload: Pick<CourseContents, 'courseId'> & {
-    contentId: string;
-    courseId: string;
-    question?: string;
-    status?: string;
-  },
-  userId: string,
-  role: UserRoleEnum,
-) => {
-  // 1. Find the existing Course Content and its associated Course for authorization
-  const existingContent = await prisma.courseContents.findUnique({
-    where: {
-      id: payload.contentId,
-      courseId: payload.courseId,
-      isDeleted: false,
-      type: 'QUESTION',
-    },
-    include: {
-      course: {
-        select: {
-          instructorId: true,
-        },
-      },
-    },
-  });
-
-
-  if (!existingContent || !existingContent.course) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      'Question content not found or deleted in course',
-    );
-  }
-
-  const courseInstructorId = existingContent.course.instructorId;
-  // NOTE: Assuming UserRoleEnum contains a value named SUPERADMIN
-  const isSuperAdmin = role === UserRoleEnum.SUPERADMIN;
-  const isInstructorMatch = userId === courseInstructorId;
-
-  // 2. Authorization Check
-  if (!isSuperAdmin && !isInstructorMatch) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'You are not authorized to update this question',
-    );
-  }
-
-  // 3. Perform Update Transaction - ONLY on the Question model
-  const result = await prisma.$transaction(async tx => {
-    // Find the associated Question ID using the unique courseContentId
-    const existingQuestion = await tx.question.findUnique({
-      where: { courseContentId: payload.contentId },
-      select: { id: true },
-    });
-
-    if (!existingQuestion) {
-      // Critical data integrity error: CourseContent is type QUESTION but no associated Question exists.
-      throw new AppError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        'Associated question record is missing',
-      );
-    }
-
-    // Update the Question record
-    await tx.question.update({
-      where: { id: existingQuestion.id },
-      data: { question: payload.question },
-    });
-
-    // Return the associated CourseContents record to confirm the operation
-    return tx.courseContents.findUniqueOrThrow({
-      where: { id: payload.contentId },
-      include: {
-        courseQuestions: true,
-      },
-    });
-  });
-
-  return result;
-};
-
-const answerQuestionContent = async (payload: any, userId: string) => {
-  const isQuestionExist = await prisma.question.findUnique({
-    where: {
-      id: payload.questionId,
-    },
-    include: {
-      questionAnswers: {
-        where: {
-          userId: userId,
-        },
-      },
-    },
-  });
-  if (!isQuestionExist) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Question not found');
-  }
-
-  const isAlreadyAnswered = !(isQuestionExist.questionAnswers.length == 0);
-
-
-  if (isAlreadyAnswered) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Already answered');
-  }
-
-  const result = await prisma.questionAnswer.create({
-    data: {
-      questionId: payload.questionId,
-      userId,
-      providedAnswer: payload.answer,
-    },
-  });
-
-  return result;
-};
-
-const getQuestionAnswers = async (
-  userId: string,
-  userRole: UserRoleEnum,
-  query: any,
-) => {
-  query.question = {};
-  query.question['instructorId'] = userId;
-
-  const answersQuery = new QueryBuilder<typeof prisma.questionAnswer>(
-    prisma.questionAnswer,
-    query,
-  );
-
-  query.sort = 'isCorrectAnswer,createdAt';
-
-  const answers = await answersQuery
-    .filter()
-    .sort()
-    .customFields({
-      question: true,
-      isCorrectAnswer: true,
-      createdAt: true,
-      id: true,
-      providedAnswer: true,
-      questionId: true,
-      user: true,
-    })
-    .exclude()
-    .paginate()
-    .execute();
-
-  return answers;
-};
-
-const getSingleQuestion = async (questionId: string) => {
-  const data = await prisma.question.findFirst({
-    where: {
-      id: questionId,
-    },
-  });
-  if (!data) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Question not found');
-  }
-
-  return data;
 };
 
 const updateAnswerStatus = async (
@@ -1044,8 +860,8 @@ const changeQuizIndex = async (
 };
 
 export const CoursecontentService = {
-  createVideoContent,
-  updateVideo,
+  createFileContent,
+  updateFileContent,
   createQuizContent,
   updateContent,
   toggleDeleteContent,
@@ -1065,11 +881,6 @@ export const CoursecontentService = {
   toggleDeleteQuiz,
   changeContentIndex,
   changeQuizIndex,
-  createQuestionContent,
-  answerQuestionContent,
-  updateQuestionContent,
   updateAnswerStatus,
 
-  getQuestionAnswers,
-  getSingleQuestion,
 };

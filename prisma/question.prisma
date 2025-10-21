@@ -1,0 +1,32 @@
+model Question {
+    id              String @id @default(auto()) @map("_id") @db.ObjectId
+    question        String
+    courseContentId String @unique @db.ObjectId
+    instructorId    String @db.ObjectId
+
+    // Relations
+    courseContent   CourseContents   @relation(fields: [courseContentId], references: [id])
+    instructor      User             @relation("InstructorToQuestion", fields: [instructorId], references: [id])
+    questionAnswers QuestionAnswer[] @relation("QuestionToAnswer")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("questions")
+}
+
+model QuestionAnswer {
+    id              String   @id @default(auto()) @map("_id") @db.ObjectId
+    questionId      String   @db.ObjectId
+    userId          String   @db.ObjectId
+    providedAnswer  String?
+    isCorrectAnswer Boolean?
+
+    // Relations
+    question Question @relation("QuestionToAnswer", fields: [questionId], references: [id])
+    user     User     @relation("UserToAnswer", fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    @@map("question_answers")
+}

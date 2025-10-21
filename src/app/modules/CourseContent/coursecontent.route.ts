@@ -10,29 +10,15 @@ const router = express.Router();
 
 // Create video content
 router.post(
-  '/video',
+  '',
   upload.single('file'),
   parseBody,
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(CoursecontentValidation.createVideoContent),
-  CourseContentController.createVideoContent,
+  CourseContentController.createFileContent,
 );
 
-// Create question content
-router.post(
-  '/question',
-  auth('INSTRUCTOR', 'SUPERADMIN'),
-  validateRequest.body(CoursecontentValidation.createQuestionContent),
-  CourseContentController.createQuestionContent,
-);
 
-// Create question content
-router.patch(
-  '/question',
-  auth('INSTRUCTOR', 'SUPERADMIN'),
-  validateRequest.body(CoursecontentValidation.updateQuestionContent),
-  CourseContentController.updateQuestionContent,
-);
 
 // router.patch(
 //   '/question',
@@ -41,31 +27,9 @@ router.patch(
 //   CourseContentController.answerQuestionContent,
 // );
 
-router.get(
-  '/questions',
-  auth('INSTRUCTOR', 'SUPERADMIN'),
-  validateRequest.body(CoursecontentValidation.answerQuestionContent),
-  CourseContentController.answerQuestionContent,
-);
 
-router.get(
-  '/questions/:id',
-  auth('ANY'),
-  CourseContentController.getSingleQuestion,
-);
 
-router.post(
-  '/question/answer',
-  auth('ANY'),
-  validateRequest.body(CoursecontentValidation.answerQuestionContent),
-  CourseContentController.answerQuestionContent,
-);
 
-router.get(
-  '/question/answers',
-  auth('SUPERADMIN', 'INSTRUCTOR'),
-  CourseContentController.getQuestionAnswers,
-);
 
 router.put(
   '/question/answers',
@@ -75,10 +39,10 @@ router.put(
 );
 
 router.put(
-  '/video/:id',
+  '/:id',
   upload.single('file'),
   auth('INSTRUCTOR', 'SUPERADMIN'),
-  CourseContentController.updateVideoContent,
+  CourseContentController.updateFileContent,
 );
 
 // Create quiz content

@@ -3,8 +3,8 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { CoursecontentService } from './coursecontent.service';
 
-const createVideoContent = catchAsync(async (req, res) => {
-  const result = await CoursecontentService.createVideoContent(
+const createFileContent = catchAsync(async (req, res) => {
+  const result = await CoursecontentService.createFileContent(
     req.body,
     req.file,
     req.user.id,
@@ -18,11 +18,11 @@ const createVideoContent = catchAsync(async (req, res) => {
   });
 });
 
-const updateVideoContent = catchAsync(async (req, res) => {
+const updateFileContent = catchAsync(async (req, res) => {
   const contentId = req.params.id;
   const video = req.file;
 
-  const result = await CoursecontentService.updateVideo(
+  const result = await CoursecontentService.updateFileContent(
     req.user.id,
     req.user.role,
     contentId,
@@ -284,70 +284,7 @@ const changeQuizIndex = catchAsync(async (req, res) => {
   });
 });
 
-const createQuestionContent = catchAsync(async (req, res) => {
-  const result = await CoursecontentService.createQuestionContent(
-    req.body,
-    req.user.id,
-    req.user.role,
-  );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Quiz content created successful',
-    data: result,
-  });
-});
-
-const answerQuestionContent = catchAsync(async (req, res) => {
-  const result = await CoursecontentService.answerQuestionContent(
-    req.body,
-    req.user.id,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Answer submitted successful',
-    data: result,
-  });
-});
-
-const updateQuestionContent = catchAsync(async (req, res) => {
-  const result = await CoursecontentService.updateQuestionContent(
-    req.body,
-    req.user.id,
-    req.user.role,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Question update successful',
-    data: result,
-  });
-});
-
-const getQuestionAnswers = catchAsync(async (req, res) => {
-  const result = await CoursecontentService.getQuestionAnswers(
-    req.user.id,
-    req.user.role,
-    req.query,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Question answer retrieved',
-    ...result,
-  });
-});
-const getSingleQuestion = catchAsync(async (req, res) => {
-  const { id: questionId } = req.params;
-  const result = await CoursecontentService.getSingleQuestion(questionId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Getting single question success',
-    data: result,
-  });
-});
 const updateAnswerStatus = catchAsync(async (req, res) => {
   const result = await CoursecontentService.updateAnswerStatus(
     req.body,
@@ -363,8 +300,8 @@ const updateAnswerStatus = catchAsync(async (req, res) => {
 });
 
 export const CourseContentController = {
-  createVideoContent,
-  updateVideoContent,
+  createFileContent,
+  updateFileContent,
   createQuizContent,
   updateContent,
   toggleDeleteContent,
@@ -384,10 +321,5 @@ export const CourseContentController = {
   toggleDeleteQuiz,
   changeContentIndex,
   changeQuizIndex,
-  createQuestionContent,
-  answerQuestionContent,
-  updateQuestionContent,
-  getQuestionAnswers,
   updateAnswerStatus,
-  getSingleQuestion,
 };
