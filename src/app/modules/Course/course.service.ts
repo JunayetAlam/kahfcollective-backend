@@ -87,7 +87,13 @@ const getAllCourses = async ({
               status: 'PUBLISHED'
             }
           },
-          enrollCourses: true,
+          enrollCourses: {
+            where: {
+              user: {
+                isDeleted: false,
+              },
+            }
+          },
         },
       },
       ...(role === 'USER' && {
