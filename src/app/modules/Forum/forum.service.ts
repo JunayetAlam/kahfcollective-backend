@@ -215,10 +215,10 @@ const getAllConnectedUserToForum = async (id: string, userId: string, role: User
     const { forum } = await checkForumAndTierEnrolled(userId, id, role)
 
     query.tierId = forum.tierId
-
-
+    query.user = { isDeleted: false }
 
     const userTierQuery = new QueryBuilder<typeof prisma.userTier>(prisma.userTier, query);
+
     const result = await userTierQuery
         .search(['user.fullName'])
         .filter()
