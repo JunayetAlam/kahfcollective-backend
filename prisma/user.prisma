@@ -37,6 +37,7 @@ model User {
   payments        Payment[]
   content         Content[]
   posts           Post[]
+  replies         Reply[]
   quizAnswers     QuizAnswers[]
   courses         Course[]
   coursesContents CourseContents[]

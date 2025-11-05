@@ -24,6 +24,11 @@ router.post(
   validateRequest.body(postValidation.postOrReply),
   PostControllers.replyToPost,
 );
+router.delete(
+  '/reply/:id',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  PostControllers.deleteReply,
+);
 
 // Reply to a reply
 router.post(

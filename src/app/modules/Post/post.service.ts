@@ -43,11 +43,25 @@ const replyToPost = async (userId: string, postId: string, payload: Pick<Reply, 
             forumId: post.forumId,
             message: payload.message,
             postId,
+            userId
         }
     });
 
 
 };
+
+const deleteReply = async (userId: string, userRole: UserRoleEnum, replyId: string) => {
+    if (userRole !== 'USER') {
+        return await prisma.reply.update({
+            where: {
+                id: replyId
+            },
+            data: {
+                isDeleted: true
+            }
+        })
+    }
+}
 
 const replyToReply = async (userId: string, parentReplyId: string, payload: Pick<Reply, 'message'>, role: UserRoleEnum) => {
     // Check if parent reply exists
@@ -59,7 +73,8 @@ const replyToReply = async (userId: string, parentReplyId: string, payload: Pick
         select: {
             id: true,
             postId: true,
-            forumId: true
+            forumId: true,
+            userId: true
         }
     });
 
@@ -277,15 +292,12 @@ const getAllReplyForSpecificPost = async (postId: string, query: any) => {
             createdAt: true,
             updatedAt: true,
             parentReplyId: true,
-            post: {
+            userId: true,
+            user: {
                 select: {
-                    user: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            profile: true
-                        }
-                    }
+                    fullName: true,
+                    profile: true,
+                    gender: true,
                 }
             }
         })
@@ -370,5 +382,6 @@ export const PostService = {
     getAllReactForPost,
     togglePublish,
     getAllPost,
-    toggleDeletePost
+    toggleDeletePost,
+    deleteReply
 };

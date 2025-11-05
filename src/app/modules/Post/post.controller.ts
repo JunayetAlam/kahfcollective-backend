@@ -24,13 +24,25 @@ const createPost = catchAsync(async (req: Request, res) => {
 const replyToPost = catchAsync(async (req: Request, res) => {
   const userId = req.user.id;
   const role = req.user.role;
-  const hello = req.params;
+  const params = req.params;
   const payload = req.body;
-  const result = await PostService.replyToPost(userId, hello.postId, payload, role);
+  const result = await PostService.replyToPost(userId, params.postId, payload, role);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     message: 'Reply added successfully',
+    data: result,
+  });
+});
+const deleteReply = catchAsync(async (req: Request, res) => {
+  const userId = req.user.id;
+  const role = req.user.role;
+  const params = req.params;
+  const result = await PostService.deleteReply(userId, role, params.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    message: 'Reply deleted successfully',
     data: result,
   });
 });
@@ -140,6 +152,7 @@ const toggleDeletePost = catchAsync(async (req: Request, res) => {
 export const PostControllers = {
   createPost,
   replyToPost,
+  deleteReply,
   replyToReply,
   giveReact,
   getAllPostForSpecificForum,

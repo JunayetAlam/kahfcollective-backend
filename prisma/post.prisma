@@ -39,6 +39,7 @@ model Reply {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     postId        String  @db.ObjectId
+    userId        String? @db.ObjectId
     forumId       String  @db.ObjectId
     parentReplyId String? @db.ObjectId
     isDeleted     Boolean @default(false)
@@ -46,6 +47,7 @@ model Reply {
     message String
 
     post            Post    @relation(fields: [postId], references: [id])
+    user            User?   @relation(fields: [userId], references: [id])
     parentReply     Reply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     childrenReplies Reply[] @relation("ReplyToReply")
 
