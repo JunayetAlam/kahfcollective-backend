@@ -21,8 +21,6 @@ app.use(
       "http://localhost:3001",
       "http://localhost:3005",
       "http://localhost:3000",
-      "https://saifghori.code-commando.com",
-      "https://kahfcollective.com",
     ],
     credentials: true,
   })

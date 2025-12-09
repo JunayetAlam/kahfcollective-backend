@@ -6,7 +6,7 @@ let initialIo: SocketIOServer;
 export const initSocket = (server: any) => {
     initialIo = new SocketIOServer(server, {
         cors: {
-            origin: ['http://localhost:3000', 'http://localhost:3001', "https://saifghori.code-commando.com"],
+            origin: ['http://localhost:3000', 'http://localhost:3001'],
             credentials: true,
         },
         transports: ['websocket', 'polling']
