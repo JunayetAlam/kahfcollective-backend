@@ -21,6 +21,7 @@ app.use(
       "http://localhost:3001",
       "http://localhost:3005",
       "http://localhost:3000",
+      "https://kahfcollective.vercel.app"
     ],
     credentials: true,
   })

@@ -6,7 +6,7 @@ let initialIo: SocketIOServer;
 export const initSocket = (server: any) => {
     initialIo = new SocketIOServer(server, {
         cors: {
-            origin: ['http://localhost:3000', 'http://localhost:3001'],
+            origin: ['http://localhost:3000', 'http://localhost:3001', "https://kahfcollective.vercel.app"],
             credentials: true,
         },
         transports: ['websocket', 'polling']
