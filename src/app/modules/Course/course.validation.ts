@@ -4,7 +4,7 @@ import { CourseStatus } from "@prisma/client";
 const createCourse = z.object({
   body: z.object({
     title: z.string(),
-    tierId: z.string(),
+    groupId: z.string(),
     description: z.string(),
     language: z.string(),
     status: z.nativeEnum(CourseStatus).optional()
@@ -14,7 +14,7 @@ const createCourse = z.object({
 const updateCourse = z.object({
   body: z.object({
     title: z.string().optional(),
-    tierId: z.string().optional(),
+    groupId: z.string().optional(),
     description: z.string().optional(),
     language: z.string().optional(),
     status: z.nativeEnum(CourseStatus).optional()

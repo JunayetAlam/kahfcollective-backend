@@ -5,19 +5,19 @@ import { prisma } from '../utils/prisma';
 
 const superAdminData = {
   fullName: 'Super Admin',
-  email: 'sghori786@gmail.com',
-  password: 'sghori786',
+  email: 'junayet.alam@outlook.com',
+  password: '123456',
   phoneNumber: '01234321',
   role: UserRoleEnum.SUPERADMIN,
   isEmailVerified: true,
   address: 'Dhaka 1203',
   introduction: 'Im super admin',
-  isReferredBySheikhSalmam: true,
-  majorOrProfession: 'Teacher',
-  haveTakenCoursesBefore: false,
   gender: GenderEnum.MALE,
-  isTakeCourseWithSheikh: false,
-  isUserVerified: true
+  isUserVerified: true,
+  currentClass: '12',
+  roll: 10,
+  subject: 'English',
+
 };
 
 const seedSuperAdmin = async () => {

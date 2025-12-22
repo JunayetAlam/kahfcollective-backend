@@ -1,0 +1,32 @@
+model Group {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    name String @unique
+
+    isDeleted Boolean @default(false)
+
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
+    contents   Content[]
+    forums     Forum[]
+    userGroups UserGroup[]
+    courses    Course[]
+
+    @@map("groups")
+}
+
+model UserGroup {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    groupId String @db.ObjectId
+    userId  String @db.ObjectId
+
+    group Group @relation(fields: [groupId], references: [id])
+    user  User  @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([groupId, userId])
+    @@map("user_group")
+}

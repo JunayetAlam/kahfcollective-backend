@@ -2,12 +2,12 @@ import { Forum, UserRoleEnum } from '@prisma/client';
 import httpStatus from 'http-status';
 import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
-import { tierService } from '../Tier/tier.service';
+import { groupService } from '../Group/group.service';
 import crypto from 'crypto';
 import QueryBuilder from '../../builder/QueryBuilder';
-import { checkForumAndTierEnrolled } from '../../utils/checkForumAndTierEnrolled';
+import { checkForumAndGroupEnrolled } from '../../utils/checkForumAndGroupEnrolled';
 
-const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId'>) => {
+const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 'courseId' | 'groupId'>) => {
     const isCourseId = await prisma.course.findUnique({
         where: { id: payload.courseId as string, isDeleted: false },
         select: {
@@ -18,7 +18,7 @@ const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 
         throw new AppError(httpStatus.NOT_FOUND, 'Course not found')
     }
 
-    await tierService.isTierExist(payload.tierId as string);
+    await groupService.isGroupExist(payload.groupId as string);
     return await prisma.forum.create({
         data: {
             ...payload,
@@ -27,10 +27,10 @@ const createCircleForum = async (payload: Pick<Forum, 'title' | 'description' | 
     })
 };
 
-const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' | 'country' | 'tierId' | 'events'>) => {
+const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' | 'country' | 'groupId' | 'events'>) => {
 
 
-    await tierService.isTierExist(payload.tierId as string);
+    await groupService.isGroupExist(payload.groupId as string);
 
     const events = payload.events.map(item => ({
         ...item,
@@ -47,7 +47,7 @@ const createLocationForum = async (payload: Pick<Forum, 'title' | 'description' 
 
 const updateCircleForum = async (
     forumId: string,
-    payload: Partial<Pick<Forum, 'title' | 'description' | 'courseId' | 'tierId'>>
+    payload: Partial<Pick<Forum, 'title' | 'description' | 'courseId' | 'groupId'>>
 ) => {
     const existingForum = await prisma.forum.findUnique({ where: { id: forumId } });
     if (!existingForum) {
@@ -62,8 +62,8 @@ const updateCircleForum = async (
         if (!isCourseId) throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
     }
 
-    if (payload.tierId) {
-        await tierService.isTierExist(payload.tierId);
+    if (payload.groupId) {
+        await groupService.isGroupExist(payload.groupId);
     }
 
     return await prisma.forum.update({
@@ -74,15 +74,15 @@ const updateCircleForum = async (
 
 const updateLocationForum = async (
     forumId: string,
-    payload: Partial<Pick<Forum, 'title' | 'description' | 'country' | 'tierId' | 'events'>>
+    payload: Partial<Pick<Forum, 'title' | 'description' | 'country' | 'groupId' | 'events'>>
 ) => {
     const existingForum = await prisma.forum.findUnique({ where: { id: forumId } });
     if (!existingForum) {
         throw new AppError(httpStatus.NOT_FOUND, 'Forum not found');
     }
 
-    if (payload.tierId) {
-        await tierService.isTierExist(payload.tierId);
+    if (payload.groupId) {
+        await groupService.isGroupExist(payload.groupId);
     }
 
     if (payload.events) {
@@ -100,7 +100,7 @@ const updateLocationForum = async (
 
 const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) => {
 
-    await checkForumAndTierEnrolled(userId, id, role)
+    await checkForumAndGroupEnrolled(userId, id, role)
 
 
     const forum = await prisma.forum.findUnique({
@@ -115,7 +115,7 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
             events: true,
             country: true,
             courseId: true,
-            tierId: true,
+            groupId: true,
             course: {
                 select: {
                     id: true,
@@ -123,7 +123,7 @@ const getSingleForum = async (id: string, userId: string, role: UserRoleEnum) =>
                 }
             },
             forumType: true,
-            tier: {
+            group: {
                 select: {
                     id: true,
                     name: true
@@ -144,18 +144,18 @@ const getAllForums = async (query: any, role: UserRoleEnum, userId: string) => {
     query.isDeleted = false
     const forumQuery = new QueryBuilder(prisma.forum, query);
     if (role === 'USER') {
-        const UserAllTier = await prisma.userTier.findMany({
+        const UserAllGroup = await prisma.userGroup.findMany({
             where: {
                 userId,
             },
             select: {
                 id: true,
-                tierId: true
+                groupId: true
             }
         });
-        const tierIds = UserAllTier.map(item => item.tierId);
-        query.tierId = {
-            in: tierIds
+        const groupIds = UserAllGroup.map(item => item.groupId);
+        query.groupId = {
+            in: groupIds
         }
     };
     const result = await forumQuery
@@ -184,7 +184,7 @@ const getAllForums = async (query: any, role: UserRoleEnum, userId: string) => {
                 }
             },
             forumType: true,
-            tier: {
+            group: {
                 select: {
                     id: true,
                     name: true
@@ -212,14 +212,14 @@ const deleteForum = async (forumId: string) => {
 };
 
 const getAllConnectedUserToForum = async (id: string, userId: string, role: UserRoleEnum, query: Record<string, unknown>) => {
-    const { forum } = await checkForumAndTierEnrolled(userId, id, role)
+    const { forum } = await checkForumAndGroupEnrolled(userId, id, role)
 
-    query.tierId = forum.tierId
+    query.groupId = forum.groupId
     query.user = { isDeleted: false }
 
-    const userTierQuery = new QueryBuilder<typeof prisma.userTier>(prisma.userTier, query);
+    const userGroupQuery = new QueryBuilder<typeof prisma.userGroup>(prisma.userGroup, query);
 
-    const result = await userTierQuery
+    const result = await userGroupQuery
         .search(['user.fullName'])
         .filter()
         .sort()
@@ -229,9 +229,9 @@ const getAllConnectedUserToForum = async (id: string, userId: string, role: User
                     id: true,
                     fullName: true,
                     profile: true,
-                    userTiers: {
+                    userGroups: {
                         select: {
-                            tier: {
+                            group: {
                                 select: {
                                     id: true,
                                     name: true

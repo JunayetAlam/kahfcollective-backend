@@ -4,12 +4,12 @@ import { prisma } from '../../utils/prisma';
 import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { toggleDelete } from '../../utils/toggleDelete';
-import { checkForumAndTierEnrolled } from '../../utils/checkForumAndTierEnrolled';
+import { checkForumAndGroupEnrolled } from '../../utils/checkForumAndGroupEnrolled';
 
 
 const createPost = async (userId: string, forumId: string, payload: Pick<Post, 'message'>, role: UserRoleEnum) => {
     // Check forum membership only for regular users
-    await checkForumAndTierEnrolled(userId, forumId, role);
+    await checkForumAndGroupEnrolled(userId, forumId, role);
 
     return await prisma.post.create({
         data: {
@@ -36,7 +36,7 @@ const replyToPost = async (userId: string, postId: string, payload: Pick<Reply, 
         throw new AppError(httpStatus.NOT_FOUND, 'Post Not Found');
     }
 
-    await checkForumAndTierEnrolled(userId, post.forumId, role)
+    await checkForumAndGroupEnrolled(userId, post.forumId, role)
 
     return await prisma.reply.create({
         data: {
@@ -81,7 +81,7 @@ const replyToReply = async (userId: string, parentReplyId: string, payload: Pick
     if (!parentReply) {
         throw new AppError(httpStatus.NOT_FOUND, 'Parent Reply Not Found');
     }
-    await checkForumAndTierEnrolled(userId, parentReply.forumId, role)
+    await checkForumAndGroupEnrolled(userId, parentReply.forumId, role)
 
     return await prisma.reply.create({
         data: {
@@ -110,7 +110,7 @@ const giveReact = async (userId: string, postId: string, role: UserRoleEnum) => 
     if (!post) {
         throw new AppError(httpStatus.NOT_FOUND, 'Post Not Found');
     }
-    await checkForumAndTierEnrolled(userId, post.forumId, role)
+    await checkForumAndGroupEnrolled(userId, post.forumId, role)
     const existingReact = await prisma.react.findUnique({
         where: {
             postId_userId: {

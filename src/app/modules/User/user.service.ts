@@ -21,25 +21,23 @@ const getAllUsersFromDB = async (query: any) => {
       profile: true,
       gender: true,
       phoneNumber: true,
-      majorOrProfession: true,
       role: true,
-      coursesName: true,
-      isTakeCourseWithSheikh: true,
-      isReferredBySheikhSalmam: true,
-      howLongInCourse: true,
-      haveTakenCoursesBefore: true,
       introduction: true,
+
+      currentClass: true,
+      roll: true,
+      subject: true,
+
       status: true,
-      referredBy: true,
       isUserVerified: true,
       enrollCourses: {
         select: {
           courseId: true
         }
       },
-      userTiers: {
+      userGroups: {
         select: {
-          tier: {
+          group: {
             select: {
               id: true,
               name: true
@@ -55,10 +53,10 @@ const getAllUsersFromDB = async (query: any) => {
   return result;
 };
 
-const getTierUsers = async (tierId: string, query: any) => {
-  query.userTiers = {
+const getGroupUsers = async (groupId: string, query: any) => {
+  query.userGroups = {
     some: {
-      tierId
+      groupId
     }
   }
   query.role = 'USER'
@@ -80,23 +78,21 @@ const getMyProfileFromDB = async (id: string) => {
       profile: true,
       gender: true,
       phoneNumber: true,
-      majorOrProfession: true,
       role: true,
-      coursesName: true,
-      isTakeCourseWithSheikh: true,
-      isReferredBySheikhSalmam: true,
-      howLongInCourse: true,
-      haveTakenCoursesBefore: true,
-      introduction: true,
       isUserVerified: true,
       status: true,
-      referredBy: true,
-      userTiers: {
+
+      currentClass: true,
+      roll: true,
+      subject: true,
+      introduction: true,
+
+      userGroups: {
         select: {
-          tier: {
+          group: {
             select: {
               id: true,
-              name: true
+              name: true,
             }
           }
         }
@@ -118,20 +114,18 @@ const getUserDetailsFromDB = async (id: string) => {
       profile: true,
       gender: true,
       phoneNumber: true,
-      majorOrProfession: true,
       role: true,
-      coursesName: true,
-      isTakeCourseWithSheikh: true,
-      isReferredBySheikhSalmam: true,
-      referredBy: true,
-      howLongInCourse: true,
-      haveTakenCoursesBefore: true,
       isUserVerified: true,
+
+      currentClass: true,
+      roll: true,
+      subject: true,
       introduction: true,
+
       status: true,
-      userTiers: {
+      userGroups: {
         select: {
-          tier: {
+          group: {
             select: {
               id: true,
               name: true
@@ -198,6 +192,7 @@ const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum, myId: 
   });
   return result;
 };
+
 const updateProfileStatus = async (id: string, status: UserStatus, myId: string) => {
   if (id === myId) {
     throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own status')
@@ -286,6 +281,8 @@ const deleteUser = async (id: string, myId: string) => {
   return deleteUser
 };
 
+// const createMultipleUser = async ()
+
 
 
 
@@ -302,6 +299,6 @@ export const UserServices = {
   isUserExist,
   toggleIsUserVerified,
   expireUserMonthlySubscription,
-  getTierUsers,
+  getGroupUsers,
   deleteUser
 };

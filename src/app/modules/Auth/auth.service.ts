@@ -225,12 +225,13 @@ const verifyEmail = async (payload: { token: string }) => {
   await prisma.user.update({
     where: {
       email: user.email,
-      isDeleted: false
+      isDeleted: false,
     },
     data: {
       isEmailVerified: true,
       emailVerificationToken: null,
       emailVerificationTokenExpires: null,
+      isUserVerified: true
     },
   });
 
@@ -240,6 +241,7 @@ const verifyEmail = async (payload: { token: string }) => {
       name: user.fullName,
       email: user.email,
       role: user.role,
+      isUserVerified: true
     },
     config.jwt.access_secret as Secret,
     config.jwt.access_expires_in as SignOptions['expiresIn'],

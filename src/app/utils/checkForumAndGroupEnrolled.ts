@@ -7,14 +7,14 @@ const needsValidation = (role: UserRoleEnum) => {
     return role === 'USER';
 };
 
-export const checkForumAndTierEnrolled = async (userId: string, forumId: string, role: UserRoleEnum) => {
+export const checkForumAndGroupEnrolled = async (userId: string, forumId: string, role: UserRoleEnum) => {
     const isForumExist = await prisma.forum.findUnique({
         where: {
             id: forumId,
             isDeleted: false
         },
         select: {
-            tierId: true
+            groupId: true
         }
     })
     if (!isForumExist) {
@@ -27,18 +27,18 @@ export const checkForumAndTierEnrolled = async (userId: string, forumId: string,
 
 
 
-    await isTierExist(isForumExist.tierId as string, userId)
+    await isGroupExist(isForumExist.groupId as string, userId)
 
 
 
     return { forum: isForumExist }
 };
 
-export const isTierExist = async (tierId: string, userId: string) => {
-    await prisma.userTier.findUnique({
+export const isGroupExist = async (groupId: string, userId: string) => {
+    await prisma.userGroup.findUnique({
         where: {
-            tierId_userId: {
-                tierId,
+            groupId_userId: {
+                groupId,
                 userId
             }
         }

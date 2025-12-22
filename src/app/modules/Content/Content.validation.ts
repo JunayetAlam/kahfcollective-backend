@@ -1,4 +1,4 @@
-import { ContentTypeEnum, TiersLevelEnum } from '@prisma/client';
+import { ContentTypeEnum } from '@prisma/client';
 import { z } from 'zod';
 
 const createContent = z.object({
@@ -8,7 +8,7 @@ const createContent = z.object({
       title: z.string(),
       description: z.string(),
       type: z.string().optional(),
-      tierId: z.string(),
+      groupId: z.string(),
       authorId: z.string(),
     })
     .strict(),
@@ -21,7 +21,7 @@ const updateContent = z.object({
       title: z.string().optional(),
       description: z.string().optional(),
       type: z.string().optional(),
-      tierId: z.string().optional(),
+      groupId: z.string().optional(),
       authorId: z.string().optional(),
     })
     .strict(),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const createTier = z.object({
+const createGroup = z.object({
     body: z
         .object({
             name: z.string(),
@@ -8,24 +8,24 @@ const createTier = z.object({
         .strict(),
 });
 
-const updateTier = z.object({
+const updateGroup = z.object({
     body: z
         .object({
             name: z.string().optional(),
         })
         .strict(),
 });
-const toggleAssignTier = z.object({
+const toggleAssignGroup = z.object({
     body: z
         .object({
             userId: z.string(),
-            tierId: z.string(),
+            groupId: z.string(),
         })
         .strict(),
 });
 
-export const tierValidation = {
-    createTier,
-    updateTier,
-    toggleAssignTier,
+export const groupValidation = {
+    createGroup,
+    updateGroup,
+    toggleAssignGroup,
 };

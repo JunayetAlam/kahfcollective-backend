@@ -2,12 +2,3 @@ enum GenderEnum {
     MALE
     FEMALE
 }
-
-
-
-enum TiersLevelEnum {
-    AWAKEN
-    ASCEND
-    ACTUALIZE
-}
-

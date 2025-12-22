@@ -25,7 +25,7 @@ The Kahf Collective backend provides a RESTful API that powers the e-learning pl
 - Forum/discussion system with nested replies
 - Payment integration with Stripe
 - Quiz system with automatic and manual grading
-- Tier-based user management
+- Group-based user management
 - File upload handling with DigitalOcean Spaces (S3-compatible)
 - Automated task scheduling
 
@@ -44,7 +44,7 @@ modules/
 ├── Content/        # Fraternity & blog content
 ├── Forum/          # Discussion forums
 ├── Post/           # Forum posts & replies
-├── Tier/           # User tier management
+├── Group/          # User group management
 ├── Payment/        # Payment processing
 └── Quiz_Answer/    # Quiz submissions & grading
 ```
@@ -72,7 +72,7 @@ Base Path: `/api/users`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
 | GET | `/` | Get all users | SUPERADMIN |
-| GET | `/tier-users/:tierId` | Get users by tier | SUPERADMIN, INSTRUCTOR |
+| GET | `/group-users/:groupId` | Get users by group | SUPERADMIN, INSTRUCTOR |
 | GET | `/me` | Get current user profile | Authenticated |
 | GET | `/:id` | Get user by ID | Authenticated |
 | PUT | `/update-profile` | Update profile | Authenticated |
@@ -160,19 +160,19 @@ Base Path: `/api/posts`
 | DELETE | `/toggle-delete/:postId` | Soft delete post | INSTRUCTOR, SUPERADMIN |
 | DELETE | `/reply/:id` | Delete reply | SUPERADMIN, INSTRUCTOR |
 
-### Tiers
-Base Path: `/api/tiers`
+### Groups
+Base Path: `/api/groups`
 
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| POST | `/` | Create tier | SUPERADMIN |
-| GET | `/` | Get all tiers | Public |
-| GET | `/admin` | Get all tiers (admin) | SUPERADMIN |
-| GET | `/:id` | Get tier by ID | Public |
-| GET | `/admin/:id` | Get tier by ID (admin) | SUPERADMIN |
-| PATCH | `/toggle-tier` | Assign/unassign tier | SUPERADMIN |
-| PATCH | `/:id` | Update tier | SUPERADMIN |
-| PATCH | `/:id/toggle-delete` | Soft delete tier | SUPERADMIN |
+| POST | `/` | Create group | SUPERADMIN |
+| GET | `/` | Get all groups | Public |
+| GET | `/admin` | Get all groups (admin) | SUPERADMIN |
+| GET | `/:id` | Get group by ID | Public |
+| GET | `/admin/:id` | Get group by ID (admin) | SUPERADMIN |
+| PATCH | `/toggle-group` | Assign/unassign group | SUPERADMIN |
+| PATCH | `/:id` | Update group | SUPERADMIN |
+| PATCH | `/:id/toggle-delete` | Soft delete group | SUPERADMIN |
 
 ### Payments
 Base Path: `/api/payments`
@@ -509,7 +509,7 @@ The application uses Prisma ORM with MongoDB. The schema is defined in the `./pr
 - **Forum** - Discussion forums
 - **Post** - Forum posts and replies
 - **Content** - Fraternity and blog content
-- **Tier** - User tier/group management
+- **Group** - User group management
 - **Payment** - Payment transactions
 
 ---

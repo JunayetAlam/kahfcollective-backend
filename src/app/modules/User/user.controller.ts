@@ -13,8 +13,8 @@ const getAllUsers = catchAsync(async (req, res) => {
     ...result
   });
 });
-const getTierUsers = catchAsync(async (req, res) => {
-  const result = await UserServices.getTierUsers(req.params.tierId, req.query);
+const getGroupUsers = catchAsync(async (req, res) => {
+  const result = await UserServices.getGroupUsers(req.params.groupId, req.query);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -121,7 +121,7 @@ const deleteUser = catchAsync(async (req, res) => {
 
 export const UserControllers = {
   getAllUsers,
-  getTierUsers,
+  getGroupUsers,
   getMyProfile,
   getUserDetails,
   updateMyProfile,

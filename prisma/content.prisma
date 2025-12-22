@@ -14,11 +14,10 @@ model Content {
     authorId String @db.ObjectId
     author   User   @relation(fields: [authorId], references: [id])
 
-    tierId String @db.ObjectId
-    tier   Tier   @relation(fields: [tierId], references: [id])
+    groupId String @db.ObjectId
+    group   Group  @relation(fields: [groupId], references: [id])
 
     createdAt DateTime @default(now())
-    // authorOrSpeaker     String
     updatedAt DateTime @updatedAt
 
     @@map("contents")

@@ -13,9 +13,9 @@ model Course {
     instructor      User             @relation(fields: [instructorId], references: [id])
     completeCourses CompleteCourse[]
     enrollCourses   EnrollCourse[]
-    tierId          String           @db.ObjectId
+    groupId         String           @db.ObjectId
 
-    tier Tier @relation(fields: [tierId], references: [id])
+    group Group @relation(fields: [groupId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -37,8 +37,6 @@ model CompleteCourse {
     @@unique([courseId, userId])
     @@map("complete_courses")
 }
-
-
 
 enum CourseStatus {
     DRAFT

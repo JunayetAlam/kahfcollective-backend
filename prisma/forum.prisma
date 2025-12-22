@@ -1,20 +1,20 @@
 model Forum {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    title       String
-    forumType   ForumTypeEnum
-   
-    description String
-    courseId    String?         @db.ObjectId
-    tierId      String?         @db.ObjectId
-    country     String?
-    isDeleted   Boolean         @default(false)
+    title     String
+    forumType ForumTypeEnum
 
-    events     Events[]
-    posts      Post[]
+    description String
+    courseId    String? @db.ObjectId
+    groupId     String? @db.ObjectId
+    country     String?
+    isDeleted   Boolean @default(false)
+
+    events Events[]
+    posts  Post[]
 
     course Course? @relation(fields: [courseId], references: [id])
-    tier   Tier?   @relation(fields: [tierId], references: [id])
+    group  Group?  @relation(fields: [groupId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

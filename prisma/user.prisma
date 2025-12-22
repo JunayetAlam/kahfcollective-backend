@@ -6,22 +6,17 @@ model User {
   password    String
   role        UserRoleEnum @default(USER)
 
-  address                  String
-  introduction             String
-  isReferredBySheikhSalmam Boolean
-  referredBy               String?
-  gender                   GenderEnum
+  gender  GenderEnum
+  address String
 
   // education
-  majorOrProfession      String
-  haveTakenCoursesBefore Boolean
-  isTakeCourseWithSheikh Boolean
-  coursesName            String?
-  howLongInCourse        String?
+  currentClass String
+  roll         Int
+  subject      String?
 
   status UserStatus @default(ACTIVE)
 
-  bio String?
+  introduction String
 
   profile   String?
   otp       String?
@@ -42,7 +37,7 @@ model User {
   courses         Course[]
   coursesContents CourseContents[]
   quizzes         Quiz[]
-  userTiers       UserTier[]
+  userGroups      UserGroup[]
   reacts          React[]
   completeCourses CompleteCourse[]
   enrollCourses   EnrollCourse[]
@@ -58,6 +53,7 @@ model User {
 
 enum UserRoleEnum {
   USER
+  CREATED_USER
   INSTRUCTOR
   SUPERADMIN
 }

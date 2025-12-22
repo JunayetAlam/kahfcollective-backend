@@ -15,7 +15,7 @@ const createCircleForum = z.object({
       title: z.string(),
       description: z.string(),
       courseId: z.string(),
-      tierId: z.string(),
+      groupId: z.string(),
     })
     .strict(),
 });
@@ -26,7 +26,7 @@ const createLocationForum = z.object({
       title: z.string(),
       description: z.string(),
       country: z.string(),
-      tierId: z.string(),
+      groupId: z.string(),
       events: z.array(eventSchema),
     })
     .strict(),
@@ -38,7 +38,7 @@ const updateCircleForum = z.object({
       title: z.string().optional(),
       description: z.string().optional(),
       courseId: z.string().optional(),
-      tierId: z.string().optional(),
+      groupId: z.string().optional(),
     })
     .strict(),
 });
@@ -49,7 +49,7 @@ const updateLocationForum = z.object({
       title: z.string().optional(),
       description: z.string().optional(),
       country: z.string().optional(),
-      tierId: z.string().optional(),
+      groupId: z.string().optional(),
       events: z.array(eventSchema).optional(),
     })
     .strict(),

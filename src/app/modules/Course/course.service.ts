@@ -13,9 +13,9 @@ import { toggleDelete } from '../../utils/toggleDelete';
 const createCourse = async (data: Course, userId: string) => {
   data.instructorId = userId;
 
-  await prisma.tier.findUniqueOrThrow({
+  await prisma.group.findUniqueOrThrow({
     where: {
-      id: data.tierId,
+      id: data.groupId,
     },
   });
 
@@ -66,9 +66,9 @@ const getAllCourses = async ({
       language: true,
       createdAt: true,
       updatedAt: true,
-      tierId: true,
+      groupId: true,
 
-      tier: {
+      group: {
         select: {
           name: true,
         },
@@ -130,17 +130,17 @@ const getCourseById = async ({
   if (role === UserRoleEnum.USER) {
     query.isDeleted = false;
     query.status = 'ACTIVE';
-    const userAllTier = await prisma.userTier.findMany({
+    const userAllGroup = await prisma.userGroup.findMany({
       where: {
         userId,
       },
       select: {
-        tierId: true,
+        groupId: true,
       },
     });
-    const userAllTierId = userAllTier.map(item => item.tierId);
-    query.tierId = {
-      in: userAllTierId,
+    const userAllGroupId = userAllGroup.map(item => item.groupId);
+    query.groupId = {
+      in: userAllGroupId,
     };
   }
 
@@ -205,10 +205,10 @@ const updateCourse = async (
   userId?: string,
   role?: UserRoleEnum,
 ) => {
-  if (data.tierId) {
-    await prisma.tier.findUniqueOrThrow({
+  if (data.groupId) {
+    await prisma.group.findUniqueOrThrow({
       where: {
-        id: data.tierId,
+        id: data.groupId,
       },
     });
   }
@@ -316,31 +316,31 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
     },
     select: {
       id: true,
-      userTiers: {
+      userGroups: {
         select: {
-          tierId: true,
+          groupId: true,
         },
       },
     },
   });
-  const allTierId = user.userTiers.map(item => item.tierId);
+  const allGroupId = user.userGroups.map(item => item.groupId);
   const course = await prisma.course.findUniqueOrThrow({
     where: {
       id: courseId,
     },
     select: {
-      tierId: true,
-      tier: {
+      groupId: true,
+      group: {
         select: {
           name: true,
         },
       },
     },
   });
-  if (!allTierId.includes(course.tierId)) {
+  if (!allGroupId.includes(course.groupId)) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `User is not under the ${course.tier.name} Tier`,
+      `User is not under the ${course.group.name} Group`,
     );
   }
 

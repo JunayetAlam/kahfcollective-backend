@@ -27,14 +27,10 @@ const registerUser = z.object({
       password: z.string().min(6).max(16),
       address: z.string().min(1),
       introduction: z.string().min(1),
-      isReferredBySheikhSalmam: z.boolean(),
-      referredBy: z.string().optional(),
-      majorOrProfession: z.string().min(1),
-      haveTakenCoursesBefore: z.boolean(),
-      coursesName: z.string().optional(),
-      howLongInCourse: z.string().optional(),
-      isTakeCourseWithSheikh: z.boolean(),
       gender: z.nativeEnum(GenderEnum),
+      currentClass: z.string(),
+      roll: z.number(),
+      subject: z.string().optional(),
     })
     .strict(),
 });

@@ -8,7 +8,7 @@ import {
   deleteFromDigitalOceanAWS,
   uploadToDigitalOceanAWS,
 } from '../../utils/uploadToDigitalOceanAWS';
-import { tierService } from '../Tier/tier.service';
+import { groupService } from '../Group/group.service';
 import { UserServices } from '../User/user.service';
 
 // Create new content
@@ -18,7 +18,7 @@ const createContent = async (
   contentFile: Express.Multer.File | undefined,
   articlePDF: Express.Multer.File | undefined,
 ) => {
-  await tierService.isTierExist(payload.tierId)
+  await groupService.isGroupExist(payload.groupId)
   await UserServices.isUserExist(payload.authorId)
 
   if (payload.contentType === 'ARTICLE') {
@@ -69,7 +69,7 @@ const getContentById = async (id: string) => {
           email: true,
         },
       },
-      tier: {
+      group: {
         select: {
           id: true,
           name: true
@@ -101,18 +101,18 @@ const getAllContents = async (query: any, role: UserRoleEnum, userId: string) =>
     }
   }
   if (role === 'USER') {
-    const UserAllTier = await prisma.userTier.findMany({
+    const UserAllGroup = await prisma.userGroup.findMany({
       where: {
         userId,
       },
       select: {
         id: true,
-        tierId: true
+        groupId: true
       }
     });
-    const tierIds = UserAllTier.map(item => item.tierId);
-    query.tierId = {
-      in: tierIds
+    const groupIds = UserAllGroup.map(item => item.groupId);
+    query.groupId = {
+      in: groupIds
     }
   };
 
@@ -132,7 +132,7 @@ const getAllContents = async (query: any, role: UserRoleEnum, userId: string) =>
           profile: true,
         },
       },
-      tier: {
+      group: {
         select: {
           id: true,
           name: true
@@ -164,8 +164,8 @@ const updateContent = async (
   articlePDF: Express.Multer.File | undefined,
 ) => {
 
-  if (payload.tierId) {
-    await tierService.isTierExist(payload.tierId)
+  if (payload.groupId) {
+    await groupService.isGroupExist(payload.groupId)
   }
   if (payload.authorId) {
     await UserServices.isUserExist(payload.authorId)
