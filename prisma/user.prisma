@@ -1,18 +1,20 @@
 model User {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  fullName    String
-  email       String       @unique
-  phoneNumber String       @unique
-  password    String
-  role        UserRoleEnum @default(USER)
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  fullName        String
+  email           String       @unique
+  phoneNumber     String
+  password        String
+  visiblePassword String?
+  role            UserRoleEnum @default(USER)
 
   gender  GenderEnum
   address String
 
   // education
-  currentClass String
-  roll         Int
-  subject      String?
+  currentClass     String
+  roll             Int
+  isCreatedByAdmin Boolean? @default(false)
+  subject          String?
 
   status UserStatus @default(ACTIVE)
 
@@ -53,7 +55,6 @@ model User {
 
 enum UserRoleEnum {
   USER
-  CREATED_USER
   INSTRUCTOR
   SUPERADMIN
 }

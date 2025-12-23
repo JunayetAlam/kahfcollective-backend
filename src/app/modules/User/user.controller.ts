@@ -118,6 +118,17 @@ const deleteUser = catchAsync(async (req, res) => {
   });
 });
 
+const createMultipleUser = catchAsync(async (req, res) => {
+  const { users } = req.body;
+  const result = await UserServices.createMultipleUser(users);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'User Created successfully',
+    data: result,
+  });
+});
+
 
 export const UserControllers = {
   getAllUsers,
@@ -129,5 +140,6 @@ export const UserControllers = {
   updateUserRoleStatus,
   updateUserStatus,
   toggleIsUserVerified,
-  deleteUser
+  deleteUser,
+  createMultipleUser
 };

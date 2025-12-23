@@ -141,6 +141,7 @@ const registerUserIntoDB = async (payload: User) => {
   const userData: User = {
     ...payload,
     password: hashedPassword,
+    visiblePassword: payload.password,
     emailVerificationToken: verificationToken,
     emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
@@ -265,6 +266,7 @@ const changePassword = async (user: any, payload: any) => {
     },
   });
 
+
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.oldPassword,
     userData.password,
@@ -351,11 +353,15 @@ const forgetPassword = async (email: string) => {
       fullName: true,
       role: true,
       emailVerificationTokenExpires: true,
+      isCreatedByAdmin: true
     },
   });
 
   if (userData.status === 'BLOCKED') {
     throw new AppError(httpStatus.BAD_REQUEST, 'User account is blocked');
+  }
+  if (userData.isCreatedByAdmin) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Contact admin for password reset');
   }
 
   const resetToken = generateToken(
@@ -454,6 +460,10 @@ const resetPassword = async (payload: {
     new Date() > userData.emailVerificationTokenExpires
   ) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Reset token has expired');
+  }
+
+  if (userData.isCreatedByAdmin) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Contact admin for password reset');
   }
 
   const newHashedPassword = await bcrypt.hash(payload.newPassword, 12);

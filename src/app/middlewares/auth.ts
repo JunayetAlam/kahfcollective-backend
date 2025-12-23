@@ -75,7 +75,7 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_C
         next();
       } else {
         if (roles.length && !roles.includes(verifyUserToken.role)) {
-          throw new AppError(httpStatus.FORBIDDEN, `${user.role === 'USER' ? 'Student' : `${user.role[0].toUpperCase()}${user.role.slice(1,user.role.length+1).toLowerCase()}`} is forbidden for the action.`);
+          throw new AppError(httpStatus.FORBIDDEN, `${user.role === 'USER' ? 'Student' : `${user.role[0].toUpperCase()}${user.role.slice(1, user.role.length + 1).toLowerCase()}`} is forbidden for the action.`);
         }
         next()
       }

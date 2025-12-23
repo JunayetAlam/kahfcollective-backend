@@ -37,9 +37,9 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1", router);
-cron.schedule("0 0 * * *", () => {
-  UserServices.expireUserMonthlySubscription();
-});
+// cron.schedule("0 0 * * *", () => {
+//   UserServices.expireUserMonthlySubscription();
+// });
 app.use(globalErrorHandler);
 app.use('/upload', express.static(path.join(__dirname, 'app', 'upload')));
 app.use((req: Request, res: Response, next: NextFunction) => {

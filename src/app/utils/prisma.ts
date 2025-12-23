@@ -4,6 +4,8 @@ export const prisma = new PrismaClient({
   omit: {
     user: {
       password: true,
+      visiblePassword: true,
+      isCreatedByAdmin: true,
       otp: true,
       otpExpiry: true,
       isEmailVerified: true,

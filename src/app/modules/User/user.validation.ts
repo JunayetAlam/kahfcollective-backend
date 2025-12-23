@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { userRole, userStatus } from "../../constant";
-import { UserRoleEnum } from "@prisma/client";
+import { GenderEnum, UserRoleEnum } from "@prisma/client";
 
 const updateUser = z.object({
     body: z.object({
@@ -8,7 +8,7 @@ const updateUser = z.object({
         phoneNumber: z.string().optional(),
         introduction: z.string().optional(),
         address: z.string().optional(),
-        
+
     }).strict(),
 });
 
@@ -23,4 +23,23 @@ const updateUserStatus = z.object({
     })
 })
 
-export const userValidation = { updateUser, updateUserRoleSchema, updateUserStatus };
+const createMultipleUser = z.object({
+    body: z.object({
+        users: z.array(z.object({
+            fullName: z.string(),
+            email: z.string(),
+            password: z.string(),
+            status: z.enum(userStatus).optional(),
+            isUserVerified: z.boolean().optional(),
+            gender: z.nativeEnum(GenderEnum).optional(),
+            address: z.string(),
+            phoneNumber: z.string(),
+            introduction: z.string().optional(),
+            currentClass: z.string(),
+            roll: z.number(),
+            subject: z.string(),
+        }))
+    })
+})
+
+export const userValidation = { updateUser, updateUserRoleSchema, updateUserStatus, createMultipleUser };

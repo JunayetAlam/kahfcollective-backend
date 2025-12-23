@@ -52,6 +52,12 @@ router.delete(
   auth('SUPERADMIN'),
   UserControllers.deleteUser,
 );
+router.post(
+  '/create-multiple-user',
+  auth('SUPERADMIN'),
+  validateRequest.body(userValidation.createMultipleUser),
+  UserControllers.createMultipleUser,
+);
 
 
 export const UserRouters = router;

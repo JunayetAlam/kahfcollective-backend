@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import { User, UserRoleEnum, UserStatus } from '@prisma/client';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { prisma } from '../../utils/prisma';
+import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 import AppError from '../../errors/AppError';
 import { deleteFromDigitalOceanAWS, uploadToDigitalOceanAWS } from '../../utils/uploadToDigitalOceanAWS';
@@ -281,7 +282,49 @@ const deleteUser = async (id: string, myId: string) => {
   return deleteUser
 };
 
-// const createMultipleUser = async ()
+const createMultipleUser = async (users: User[]) => {
+  const uniqueEmail = [...new Set(users.map(user => user.email))];
+  const isUserExist = await prisma.user.findMany({
+    where: {
+      email: {
+        in: uniqueEmail,
+      },
+    },
+  });
+  if (isUserExist.length > 0) {
+    const allEmail = isUserExist.map(user => user.email);
+    throw new AppError(httpStatus.BAD_REQUEST, `User already exist with email ${allEmail.join(', ')}`)
+  };
+  const allUsers = await Promise.all(uniqueEmail.map(async email => {
+    const returnUser = users.find(u => u.email === email) as User;
+    const hashedPassword: string = await bcrypt.hash(returnUser?.password, 12);
+    return {
+      email: email,
+      fullName: returnUser?.fullName,
+      phoneNumber: returnUser?.phoneNumber,
+      password: hashedPassword,
+      visiblePassword: returnUser?.visiblePassword,
+      role: 'USER' as UserRoleEnum,
+      isCreatedByAdmin: true,
+      status: returnUser?.status || 'ACTIVE',
+      isUserVerified: returnUser?.isUserVerified || true,
+      isEmailVerified: true,
+      gender: returnUser?.gender,
+      address: returnUser?.address,
+      currentClass: returnUser?.currentClass,
+      roll: returnUser?.roll,
+      subject: returnUser?.subject,
+      introduction: returnUser?.introduction || '',
+    }
+  }));
+
+
+
+  const result = await prisma.user.createMany({
+    data: allUsers,
+  });
+  return result
+}
 
 
 
@@ -300,5 +343,6 @@ export const UserServices = {
   toggleIsUserVerified,
   expireUserMonthlySubscription,
   getGroupUsers,
-  deleteUser
+  deleteUser,
+  createMultipleUser
 };
