@@ -10,16 +10,19 @@ const getAllUsers = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Users retrieved successfully',
-    ...result
+    ...result,
   });
 });
 const getGroupUsers = catchAsync(async (req, res) => {
-  const result = await UserServices.getGroupUsers(req.params.groupId, req.query);
+  const result = await UserServices.getGroupUsers(
+    req.params.groupId,
+    req.query,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Users retrieved successfully',
-    ...result
+    ...result,
   });
 });
 
@@ -65,7 +68,12 @@ const updateProfileImage = catchAsync(async (req: Request, res) => {
   const file = req.file;
   const previousImg = req.user.profile || '';
 
-  const result = await UserServices.updateProfileImg(id, previousImg, req, file);
+  const result = await UserServices.updateProfileImg(
+    id,
+    previousImg,
+    req,
+    file,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -77,7 +85,11 @@ const updateProfileImage = catchAsync(async (req: Request, res) => {
 const updateUserRoleStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const role = req.body.role;
-  const result = await UserServices.updateUserRoleStatusIntoDB(id, role, req.user.id);
+  const result = await UserServices.updateUserRoleStatusIntoDB(
+    id,
+    role,
+    req.user.id,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -89,7 +101,11 @@ const updateUserRoleStatus = catchAsync(async (req, res) => {
 const updateUserStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const status = req.body.status;
-  const result = await UserServices.updateProfileStatus(id, status, req.user.id);
+  const result = await UserServices.updateProfileStatus(
+    id,
+    status,
+    req.user.id,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -128,7 +144,17 @@ const createMultipleUser = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const updatePassword = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const password = req.body.password;
+  const result = await UserServices.updatePassword(id, password);
 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'User password updated successfully',
+    data: result,
+  });
+});
 
 export const UserControllers = {
   getAllUsers,
@@ -141,5 +167,6 @@ export const UserControllers = {
   updateUserStatus,
   toggleIsUserVerified,
   deleteUser,
-  createMultipleUser
+  updatePassword,
+  createMultipleUser,
 };

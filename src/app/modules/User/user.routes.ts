@@ -9,7 +9,11 @@ import { upload } from '../../utils/fileUploader';
 const router = express.Router();
 
 router.get('/', auth('SUPERADMIN'), UserControllers.getAllUsers);
-router.get('/group-users/:groupId', auth('SUPERADMIN', 'INSTRUCTOR'), UserControllers.getGroupUsers);
+router.get(
+  '/group-users/:groupId',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  UserControllers.getGroupUsers,
+);
 router.get('/me', auth('ANY'), UserControllers.getMyProfile);
 
 router.get('/:id', auth('ANY'), UserControllers.getUserDetails);
@@ -47,11 +51,7 @@ router.put(
   auth('SUPERADMIN'),
   UserControllers.toggleIsUserVerified,
 );
-router.delete(
-  '/:id',
-  auth('SUPERADMIN'),
-  UserControllers.deleteUser,
-);
+router.delete('/:id', auth('SUPERADMIN'), UserControllers.deleteUser);
 router.post(
   '/create-multiple-user',
   auth('SUPERADMIN'),
@@ -59,5 +59,11 @@ router.post(
   UserControllers.createMultipleUser,
 );
 
+router.put(
+  '/update-password/:id',
+  auth('SUPERADMIN'),
+  validateRequest.body(userValidation.updatePassword),
+  UserControllers.updatePassword,
+);
 
 export const UserRouters = router;

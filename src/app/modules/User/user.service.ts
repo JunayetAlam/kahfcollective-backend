@@ -5,10 +5,13 @@ import { prisma } from '../../utils/prisma';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 import AppError from '../../errors/AppError';
-import { deleteFromDigitalOceanAWS, uploadToDigitalOceanAWS } from '../../utils/uploadToDigitalOceanAWS';
+import {
+  deleteFromDigitalOceanAWS,
+  uploadToDigitalOceanAWS,
+} from '../../utils/uploadToDigitalOceanAWS';
 
 const getAllUsersFromDB = async (query: any) => {
-  query.isDeleted = false
+  query.isDeleted = false;
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
   const result = await usersQuery
     .search(['fullName', 'email'])
@@ -33,19 +36,19 @@ const getAllUsersFromDB = async (query: any) => {
       isUserVerified: true,
       enrollCourses: {
         select: {
-          courseId: true
-        }
+          courseId: true,
+        },
       },
       userGroups: {
         select: {
           group: {
             select: {
               id: true,
-              name: true
-            }
-          }
-        }
-      }
+              name: true,
+            },
+          },
+        },
+      },
     })
     .exclude()
     .paginate()
@@ -57,14 +60,13 @@ const getAllUsersFromDB = async (query: any) => {
 const getGroupUsers = async (groupId: string, query: any) => {
   query.userGroups = {
     some: {
-      groupId
-    }
-  }
-  query.role = 'USER'
+      groupId,
+    },
+  };
+  query.role = 'USER';
   const result = getAllUsersFromDB(query);
-  return result
+  return result;
 };
-
 
 const getMyProfileFromDB = async (id: string) => {
   const Profile = await prisma.user.findUniqueOrThrow({
@@ -94,11 +96,11 @@ const getMyProfileFromDB = async (id: string) => {
             select: {
               id: true,
               name: true,
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   });
 
   return Profile;
@@ -129,36 +131,40 @@ const getUserDetailsFromDB = async (id: string) => {
           group: {
             select: {
               id: true,
-              name: true
-            }
-          }
-        }
-      }
-    }
-  })
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
   return user;
 };
 
-const updateProfileImg = async (id: string, previousImg: string, req: Request, file: Express.Multer.File | undefined) => {
-
+const updateProfileImg = async (
+  id: string,
+  previousImg: string,
+  req: Request,
+  file: Express.Multer.File | undefined,
+) => {
   if (file) {
-    const { Location } = await uploadToDigitalOceanAWS(file)
+    const { Location } = await uploadToDigitalOceanAWS(file);
     const result = await prisma.user.update({
       where: {
-        id
+        id,
       },
       data: {
-        profile: Location
-      }
+        profile: Location,
+      },
     });
     if (previousImg) {
-      deleteFromDigitalOceanAWS(previousImg)
+      deleteFromDigitalOceanAWS(previousImg);
     }
     req.user.profile = Location;
-    return result
+    return result;
   }
-  throw new AppError(httpStatus.NOT_FOUND, 'Please provide image')
+  throw new AppError(httpStatus.NOT_FOUND, 'Please provide image');
 };
 
 const updateMyProfileIntoDB = async (
@@ -166,83 +172,99 @@ const updateMyProfileIntoDB = async (
 
   payload: Partial<User>,
 ) => {
-  delete payload.email
-
+  delete payload.email;
 
   const result = await prisma.user.update({
     where: {
-      id
+      id,
     },
-    data: payload
-  })
-  return result
+    data: payload,
+  });
+  return result;
 };
 
-const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum, myId: string) => {
+const updateUserRoleStatusIntoDB = async (
+  id: string,
+  role: UserRoleEnum,
+  myId: string,
+) => {
   if (id === myId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own role')
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You cannot change your own role',
+    );
   }
   const result = await prisma.user.update({
     where: {
       id: id,
-      isDeleted: false
+      isDeleted: false,
     },
     data: {
-      role: role
+      role: role,
     },
   });
   return result;
 };
 
-const updateProfileStatus = async (id: string, status: UserStatus, myId: string) => {
+const updateProfileStatus = async (
+  id: string,
+  status: UserStatus,
+  myId: string,
+) => {
   if (id === myId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own status')
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You cannot change your own status',
+    );
   }
   const result = await prisma.user.update({
     where: {
       id,
-      isDeleted: false
+      isDeleted: false,
     },
     data: {
-      status
+      status,
     },
     select: {
       id: true,
       status: true,
-      role: true
+      role: true,
     },
-  })
-  return result
-}
+  });
+  return result;
+};
 
 const isUserExist = async (id: string) => {
   const user = await prisma.user.findUnique({
     where: { id, isDeleted: false },
     select: {
-      id: true
-    }
+      id: true,
+    },
   });
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
-  return user
-}
+  return user;
+};
 
 const toggleIsUserVerified = async (id: string, myId: string) => {
   if (id === myId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own status')
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You cannot change your own status',
+    );
   }
   const result = await prisma.$runCommandRaw({
-    update: "users",
+    update: 'users',
     updates: [
       {
         q: { _id: { $oid: id }, isDeleted: false },
-        u: [{ $set: { isUserVerified: { $not: "$isUserVerified" } } }],
+        u: [{ $set: { isUserVerified: { $not: '$isUserVerified' } } }],
       },
     ],
     ordered: true,
   });
-  return result
+  return result;
 };
 
 const expireUserMonthlySubscription = async () => {
@@ -250,8 +272,8 @@ const expireUserMonthlySubscription = async () => {
   return await prisma.user.updateMany({
     where: {
       expireIn: { lte: now },
-      status: "ACTIVE",
-      role: "USER",
+      status: 'ACTIVE',
+      role: 'USER',
     },
     data: {
       isUserVerified: false,
@@ -261,13 +283,13 @@ const expireUserMonthlySubscription = async () => {
 
 const deleteUser = async (id: string, myId: string) => {
   if (id === myId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot remove yourself')
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot remove yourself');
   }
   const user = await prisma.user.findUniqueOrThrow({
     where: { id, isDeleted: false },
   });
   if (user.role === 'SUPERADMIN') {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Super Admin Cannot deletable')
+    throw new AppError(httpStatus.BAD_REQUEST, 'Super Admin Cannot deletable');
   }
   const deleteUser = await prisma.user.update({
     where: { id },
@@ -277,9 +299,9 @@ const deleteUser = async (id: string, myId: string) => {
       isEmailVerified: false,
       isUserVerified: false,
       emailVerificationToken: '',
-    }
+    },
   });
-  return deleteUser
+  return deleteUser;
 };
 
 const createMultipleUser = async (users: User[]) => {
@@ -293,43 +315,53 @@ const createMultipleUser = async (users: User[]) => {
   });
   if (isUserExist.length > 0) {
     const allEmail = isUserExist.map(user => user.email);
-    throw new AppError(httpStatus.BAD_REQUEST, `User already exist with email ${allEmail.join(', ')}`)
-  };
-  const allUsers = await Promise.all(uniqueEmail.map(async email => {
-    const returnUser = users.find(u => u.email === email) as User;
-    const hashedPassword: string = await bcrypt.hash(returnUser?.password, 12);
-    return {
-      email: email,
-      fullName: returnUser?.fullName,
-      phoneNumber: returnUser?.phoneNumber,
-      password: hashedPassword,
-      visiblePassword: returnUser?.visiblePassword,
-      role: 'USER' as UserRoleEnum,
-      isCreatedByAdmin: true,
-      status: returnUser?.status || 'ACTIVE',
-      isUserVerified: returnUser?.isUserVerified || true,
-      isEmailVerified: true,
-      gender: returnUser?.gender,
-      address: returnUser?.address,
-      currentClass: returnUser?.currentClass,
-      roll: returnUser?.roll,
-      subject: returnUser?.subject,
-      introduction: returnUser?.introduction || '',
-    }
-  }));
-
-
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `User already exist with email ${allEmail.join(', ')}`,
+    );
+  }
+  const allUsers = await Promise.all(
+    uniqueEmail.map(async email => {
+      const returnUser = users.find(u => u.email === email) as User;
+      const hashedPassword: string = await bcrypt.hash(
+        returnUser?.password,
+        12,
+      );
+      return {
+        email: email,
+        fullName: returnUser?.fullName,
+        phoneNumber: returnUser?.phoneNumber,
+        password: hashedPassword,
+        visiblePassword: returnUser?.visiblePassword,
+        role: 'USER' as UserRoleEnum,
+        isCreatedByAdmin: true,
+        status: returnUser?.status || 'ACTIVE',
+        isUserVerified: returnUser?.isUserVerified || true,
+        isEmailVerified: true,
+        gender: returnUser?.gender,
+        address: returnUser?.address,
+        currentClass: returnUser?.currentClass,
+        roll: returnUser?.roll,
+        subject: returnUser?.subject,
+        introduction: returnUser?.introduction || '',
+      };
+    }),
+  );
 
   const result = await prisma.user.createMany({
     data: allUsers,
   });
-  return result
-}
+  return result;
+};
 
-
-
-
-
+const updatePassword = async (id: string, password: string) => {
+  const hashedPassword: string = await bcrypt.hash(password, 12);
+  const result = await prisma.user.update({
+    where: { id },
+    data: { password: hashedPassword, visiblePassword: password },
+  });
+  return result;
+};
 
 export const UserServices = {
   getAllUsersFromDB,
@@ -344,5 +376,6 @@ export const UserServices = {
   expireUserMonthlySubscription,
   getGroupUsers,
   deleteUser,
-  createMultipleUser
+  updatePassword,
+  createMultipleUser,
 };
