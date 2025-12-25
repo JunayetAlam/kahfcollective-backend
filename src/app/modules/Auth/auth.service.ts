@@ -285,6 +285,7 @@ const changePassword = async (user: any, payload: any) => {
     },
     data: {
       password: hashedPassword,
+      visiblePassword: payload.newPassword
     },
   });
 
@@ -475,6 +476,7 @@ const resetPassword = async (payload: {
     },
     data: {
       password: newHashedPassword,
+      visiblePassword: payload.newPassword,
       emailVerificationToken: null,
       emailVerificationTokenExpires: null,
     },
