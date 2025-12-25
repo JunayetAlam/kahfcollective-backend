@@ -5,9 +5,9 @@ import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
 import { toggleDelete } from '../../utils/toggleDelete';
 import {
-  deleteFromDigitalOceanAWS,
-  uploadToDigitalOceanAWS,
-} from '../../utils/uploadToDigitalOceanAWS';
+  deleteFromStorage,
+  uploadToStorage,
+} from '../../utils/uploadToStorage';
 
 const checkSuperAdmin = (role: UserRoleEnum, userId: string) => {
   if (role !== 'SUPERADMIN') {
@@ -69,7 +69,7 @@ const createFileContent = async (
     },
   });
 
-  const { Location } = await uploadToDigitalOceanAWS(file);
+  const { Location } = await uploadToStorage(file);
   const result = await prisma.courseContents.create({
     data: {
       ...payload,
@@ -115,7 +115,7 @@ const updateFileContent = async (
 
 
 
-  const { Location } = await uploadToDigitalOceanAWS(file);
+  const { Location } = await uploadToStorage(file);
 
   const result = await prisma.courseContents.update({
     where: {
@@ -127,7 +127,7 @@ const updateFileContent = async (
   });
   const deletingUrl = isContentExist.type === 'VIDEO' ? isContentExist.videoUrl : isContentExist.pdfUrl
   if (deletingUrl) {
-    await deleteFromDigitalOceanAWS(deletingUrl);
+    await deleteFromStorage(deletingUrl);
   }
   return result;
 };

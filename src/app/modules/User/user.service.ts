@@ -6,9 +6,9 @@ import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 import AppError from '../../errors/AppError';
 import {
-  deleteFromDigitalOceanAWS,
-  uploadToDigitalOceanAWS,
-} from '../../utils/uploadToDigitalOceanAWS';
+  deleteFromStorage,
+  uploadToStorage,
+} from '../../utils/uploadToStorage';
 import { removeDataByPattern, updateData } from '../../redis/redis.utils';
 import {
   getMany,
@@ -249,7 +249,7 @@ const updateProfileImg = async (
   file: Express.Multer.File | undefined,
 ) => {
   if (file) {
-    const { Location } = await uploadToDigitalOceanAWS(file);
+    const { Location } = await uploadToStorage(file);
     const result = await prisma.user.update({
       where: {
         id,
@@ -259,7 +259,7 @@ const updateProfileImg = async (
       },
     });
     if (previousImg) {
-      deleteFromDigitalOceanAWS(previousImg);
+      deleteFromStorage(previousImg);
     }
     req.user.profile = Location;
     await updateData(`user-${id}-*`, { profile: Location }, 60 * 60 * 24);

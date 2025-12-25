@@ -5,9 +5,9 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
 import {
-  deleteFromDigitalOceanAWS,
-  uploadToDigitalOceanAWS,
-} from '../../utils/uploadToDigitalOceanAWS';
+  deleteFromStorage,
+  uploadToStorage,
+} from '../../utils/uploadToStorage';
 import { groupService } from '../Group/group.service';
 import { UserServices } from '../User/user.service';
 
@@ -26,12 +26,12 @@ const createContent = async (
       throw new AppError(httpStatus.NOT_FOUND, 'Cover Image not provied')
     } else {
       payload.coverImage = (
-        await uploadToDigitalOceanAWS(coverImageFile)
+        await uploadToStorage(coverImageFile)
       ).Location;
     }
     if (articlePDF) {
       payload.articlePDF = (
-        await uploadToDigitalOceanAWS(articlePDF)
+        await uploadToStorage(articlePDF)
       ).Location;
     }
   }
@@ -41,7 +41,7 @@ const createContent = async (
       throw new AppError(httpStatus.NOT_FOUND, 'Content file not provided')
     } else {
       payload.fileLink = (
-        await uploadToDigitalOceanAWS(contentFile)
+        await uploadToStorage(contentFile)
       ).Location;
     }
   }
@@ -174,19 +174,19 @@ const updateContent = async (
   if (payload?.contentType === 'ARTICLE') {
     if (coverImageFile) {
       payload.coverImage = (
-        await uploadToDigitalOceanAWS(coverImageFile)
+        await uploadToStorage(coverImageFile)
       ).Location;
     }
     if (articlePDF) {
       payload.articlePDF = (
-        await uploadToDigitalOceanAWS(articlePDF)
+        await uploadToStorage(articlePDF)
       ).Location;
     }
   }
 
   if (payload?.contentType === 'SERMONS' && contentFile) {
     payload.fileLink = (
-      await uploadToDigitalOceanAWS(contentFile)
+      await uploadToStorage(contentFile)
     ).Location;
   }
 

@@ -219,6 +219,18 @@ const updateCourse = async (
   userId?: string,
   role?: UserRoleEnum,
 ) => {
+  if (data.instructorId) {
+    const instructor = await prisma.user.findUnique({
+      where: {
+        id: data.instructorId,
+        isDeleted: false,
+        isUserVerified: true,
+      },
+    });
+    if (!instructor) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Instructor not found');
+    }
+  }
   return await prisma.course.update({
     where: {
       id,
