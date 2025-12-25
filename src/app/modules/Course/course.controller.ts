@@ -4,8 +4,7 @@ import sendResponse from '../../utils/sendResponse';
 import { CourseService } from './course.service';
 
 const createCourse = catchAsync(async (req, res) => {
-  const userId = req?.user?.id;
-  const result = await CourseService.createCourse(req.body, userId);
+  const result = await CourseService.createCourse(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -71,7 +70,12 @@ const toggleCourseStatus = catchAsync(async (req, res) => {
   const { status } = req.body;
   const userId = req?.user?.id;
   const role = req?.user?.role;
-  const result = await CourseService.toggleCourseStatus(id, status, role, userId);
+  const result = await CourseService.toggleCourseStatus(
+    id,
+    status,
+    role,
+    userId,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -124,6 +128,20 @@ const enrolledUserOnCourse = catchAsync(async (req, res) => {
   });
 });
 
+const toggleAssignCourseToGroup = catchAsync(async (req, res) => {
+  const { courseId, groupId } = req.body;
+  const result = await CourseService.toggleAssignCourseToGroup(
+    courseId,
+    groupId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Course assigned to group toggled successfully',
+    data: result,
+  });
+});
+
 export const courseController = {
   createCourse,
   getAllCourses,
@@ -134,5 +152,6 @@ export const courseController = {
   isCourseExist,
   toggleCompleteCourse,
   toggleEnrollCourse,
-  enrolledUserOnCourse
+  enrolledUserOnCourse,
+  toggleAssignCourseToGroup,
 };

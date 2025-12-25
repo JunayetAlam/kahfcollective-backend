@@ -13,9 +13,7 @@ model Course {
     instructor      User             @relation(fields: [instructorId], references: [id])
     completeCourses CompleteCourse[]
     enrollCourses   EnrollCourse[]
-    groupId         String           @db.ObjectId
-
-    group Group @relation(fields: [groupId], references: [id])
+    groupCourses    GroupCourse[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -36,6 +34,21 @@ model CompleteCourse {
 
     @@unique([courseId, userId])
     @@map("complete_courses")
+}
+
+model GroupCourse {
+    id       String @id @default(auto()) @map("_id") @db.ObjectId
+    courseId String @db.ObjectId
+    groupId  String @db.ObjectId
+
+    course Course @relation(fields: [courseId], references: [id])
+    group  Group  @relation(fields: [groupId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([courseId, groupId])
+    @@map("group_courses")
 }
 
 enum CourseStatus {

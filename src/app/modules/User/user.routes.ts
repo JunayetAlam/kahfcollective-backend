@@ -66,4 +66,10 @@ router.put(
   UserControllers.updatePassword,
 );
 
+router.get(
+  '/all/multiple-group-users',
+  auth('SUPERADMIN', 'INSTRUCTOR'),
+  UserControllers.getMultipleGroupUsers,
+);
+
 export const UserRouters = router;

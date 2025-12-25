@@ -5,12 +5,12 @@ model Group {
 
     isDeleted Boolean @default(false)
 
-    createdAt  DateTime    @default(now())
-    updatedAt  DateTime    @updatedAt
-    contents   Content[]
-    forums     Forum[]
-    userGroups UserGroup[]
-    courses    Course[]
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    contents     Content[]
+    forums       Forum[]
+    userGroups   UserGroup[]
+    groupCourses GroupCourse[]
 
     @@map("groups")
 }

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post(
   '/',
-  auth('INSTRUCTOR'),
+  auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(courseValidation.createCourse),
   courseController.createCourse,
 );
@@ -55,5 +55,10 @@ router.post(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   courseController.enrolledUserOnCourse,
 );
-
+router.post(
+  '/assign-course-to-group',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  validateRequest.body(courseValidation.toggleAssignCourseToGroup),
+  courseController.toggleAssignCourseToGroup,
+);
 export const CourseRouters = router;

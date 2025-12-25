@@ -155,6 +155,17 @@ const updatePassword = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const getMultipleGroupUsers = catchAsync(async (req, res) => {
+  const { groupIds } = req.query;
+  const ids = (groupIds as string).split(',').filter(id => !!id);
+  const result = await UserServices.getMultipleGroupUsers(ids, req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'User Created successfully',
+    ...result,
+  });
+});
 
 export const UserControllers = {
   getAllUsers,
@@ -169,4 +180,5 @@ export const UserControllers = {
   deleteUser,
   updatePassword,
   createMultipleUser,
+  getMultipleGroupUsers,
 };

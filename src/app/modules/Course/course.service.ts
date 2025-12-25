@@ -12,15 +12,14 @@ import { toggleDelete } from '../../utils/toggleDelete';
 import { updateData } from '../../redis/redis.utils';
 import { get } from '../../redis/GetOrSet';
 
-const createCourse = async (data: Course, userId: string) => {
-  data.instructorId = userId;
-
-  await prisma.group.findUniqueOrThrow({
+const createCourse = async (data: Course) => {
+  await prisma.user.findUniqueOrThrow({
     where: {
-      id: data.groupId,
+      id: data.instructorId,
+      isDeleted: false,
+      isUserVerified: true,
     },
   });
-
   return await prisma.course.create({
     data: {
       ...data,
@@ -68,11 +67,20 @@ const getAllCourses = async ({
       language: true,
       createdAt: true,
       updatedAt: true,
-      groupId: true,
 
-      group: {
+      groupCourses: {
+        where: {
+          group: {
+            isDeleted: false,
+          },
+        },
         select: {
-          name: true,
+          group: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
       instructor: {
@@ -141,8 +149,12 @@ const getCourseById = async ({
       },
     });
     const userAllGroupId = userAllGroup.map(item => item.groupId);
-    query.groupId = {
-      in: userAllGroupId,
+    query.groupCourses = {
+      some: {
+        groupId: {
+          in: userAllGroupId,
+        },
+      },
     };
   }
 
@@ -207,13 +219,6 @@ const updateCourse = async (
   userId?: string,
   role?: UserRoleEnum,
 ) => {
-  if (data.groupId) {
-    await prisma.group.findUniqueOrThrow({
-      where: {
-        id: data.groupId,
-      },
-    });
-  }
   return await prisma.course.update({
     where: {
       id,
@@ -328,18 +333,28 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
       id: courseId,
     },
     select: {
-      groupId: true,
-      group: {
+      groupCourses: {
+        where: {
+          group: {
+            isDeleted: false,
+          },
+        },
         select: {
-          name: true,
+          group: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
     },
   });
-  if (!allGroupId.includes(course.groupId)) {
+  const groups = course.groupCourses.map(item => item.group.id);
+  if (!allGroupId.find(item => groups.includes(item))) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `User is not under the ${course.group.name} Group`,
+      `User is not under the Course Group`,
     );
   }
 
@@ -421,6 +436,35 @@ const enrolledUserOnCourse = async (courseId: string) => {
   return returnedResult;
 };
 
+const toggleAssignCourseToGroup = async (courseId: string, groupId: string) => {
+  const result = await prisma.groupCourse.findUnique({
+    where: {
+      courseId_groupId: {
+        courseId,
+        groupId,
+      },
+    },
+  });
+
+  if (result) {
+    await prisma.groupCourse.delete({
+      where: {
+        courseId_groupId: {
+          courseId,
+          groupId,
+        },
+      },
+    });
+    return result;
+  }
+  return await prisma.groupCourse.create({
+    data: {
+      courseId,
+      groupId,
+    },
+  });
+};
+
 export const CourseService = {
   createCourse,
   getAllCourses,
@@ -432,4 +476,5 @@ export const CourseService = {
   toggleCompleteCourse,
   toggleEnrollCourse,
   enrolledUserOnCourse,
+  toggleAssignCourseToGroup,
 };

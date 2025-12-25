@@ -94,7 +94,33 @@ const getGroupUsers = async (groupId: string, query: any) => {
     },
   };
   query.role = 'USER';
-  const result = getAllUsersFromDB(query);
+  const result = await getAllUsersFromDB(query);
+  return result;
+};
+
+const getMultipleGroupUsers = async (groupIds: string[], query: any) => {
+  if (groupIds.length === 0) {
+    return {
+      data: [],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPage: 1,
+      },
+    };
+  }
+
+  query.userGroups = {
+    some: {
+      groupId: {
+        in: groupIds,
+      },
+    },
+  };
+  query.role = 'USER';
+  delete query.groupIds;
+  const result = await getAllUsersFromDB(query);
   return result;
 };
 
@@ -314,7 +340,10 @@ const updateProfileStatus = async (
 
 const isUserExist = async (id: string) => {
   const user = await prisma.user.findUnique({
-    where: { id, isDeleted: false },
+    where: {
+      id,
+      isDeleted: false,
+    },
     select: {
       id: true,
     },
@@ -481,4 +510,5 @@ export const UserServices = {
   deleteUser,
   updatePassword,
   createMultipleUser,
+  getMultipleGroupUsers,
 };
