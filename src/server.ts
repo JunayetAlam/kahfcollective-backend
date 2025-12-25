@@ -4,11 +4,13 @@ import seedSuperAdmin from './app/DB';
 import { initSocket } from './app/utils/socket';
 import config from './config';
 import { customConsole } from './app/utils/customConsole';
+import { redis } from './app/redis/redis';
 const port = config.port || 5000;
 
 async function main() {
+  await redis.connect();
   const server: HTTPServer = createServer(app).listen(port, () => {
-    customConsole(port, 'Kahf Collective (Server)')
+    customConsole(port, 'Kahf Collective (Server)');
     seedSuperAdmin();
   });
 

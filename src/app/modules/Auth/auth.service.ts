@@ -10,6 +10,7 @@ import { insecurePrisma, prisma } from '../../utils/prisma';
 import { sendLinkViaMail } from '../../utils/sendMail';
 import sendResponse from '../../utils/sendResponse';
 import { verifyToken } from '../../utils/verifyToken';
+import { removeDataByPattern } from '../../redis/redis.utils';
 
 const loginUserFromDB = async (
   res: Response,
@@ -21,11 +22,11 @@ const loginUserFromDB = async (
   const userData = await insecurePrisma.user.findUnique({
     where: {
       email: payload.email,
-      isDeleted: false
+      isDeleted: false,
     },
   });
   if (!userData) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found. Please Sign up.')
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found. Please Sign up.');
   }
 
   const isCorrectPassword: boolean = await bcrypt.compare(
@@ -44,7 +45,7 @@ const loginUserFromDB = async (
         name: userData.fullName,
         email: userData.email,
         role: userData.role,
-        isUserVerified: userData.isUserVerified
+        isUserVerified: userData.isUserVerified,
       },
       config.jwt.access_secret as Secret,
       '24h', // 24 hours expiry for email verification
@@ -82,7 +83,7 @@ const loginUserFromDB = async (
         name: userData.fullName,
         email: userData.email,
         role: userData.role,
-        isUserVerified: userData.isUserVerified
+        isUserVerified: userData.isUserVerified,
       },
       config.jwt.access_secret as Secret,
       config.jwt.access_expires_in as SignOptions['expiresIn'],
@@ -104,8 +105,8 @@ const registerUserIntoDB = async (payload: User) => {
 
   const isUserExistWithTheGmail = await prisma.user.findFirst({
     where: {
-      OR: [{ email: payload.email, }, { phoneNumber: payload.phoneNumber }],
-      isDeleted: false
+      OR: [{ email: payload.email }, { phoneNumber: payload.phoneNumber }],
+      isDeleted: false,
     },
     select: {
       id: true,
@@ -146,24 +147,23 @@ const registerUserIntoDB = async (payload: User) => {
     emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
 
-
-
   await prisma.$transaction(async tx => {
     const newUser = await tx.user.upsert({
       where: {
         email: payload.email,
-        isDeleted: true
+        isDeleted: true,
       },
       update: {
         ...userData,
-        isDeleted: false
+        isDeleted: false,
       },
-      create: userData
+      create: userData,
     });
 
     const verificationLink = `${config.base_url_client}/auth/verify-email?token=${verificationToken}`;
 
     try {
+      await removeDataByPattern(`users*`);
       sendLinkViaMail(newUser.email, verificationLink);
     } catch {
       throw new AppError(
@@ -194,7 +194,7 @@ const verifyEmail = async (payload: { token: string }) => {
   const user = await insecurePrisma.user.findUniqueOrThrow({
     where: {
       email: verifyUserToken.email,
-      isDeleted: false
+      isDeleted: false,
     },
   });
 
@@ -232,7 +232,7 @@ const verifyEmail = async (payload: { token: string }) => {
       isEmailVerified: true,
       emailVerificationToken: null,
       emailVerificationTokenExpires: null,
-      isUserVerified: true
+      isUserVerified: true,
     },
   });
 
@@ -242,7 +242,7 @@ const verifyEmail = async (payload: { token: string }) => {
       name: user.fullName,
       email: user.email,
       role: user.role,
-      isUserVerified: true
+      isUserVerified: true,
     },
     config.jwt.access_secret as Secret,
     config.jwt.access_expires_in as SignOptions['expiresIn'],
@@ -262,10 +262,9 @@ const changePassword = async (user: any, payload: any) => {
     where: {
       email: user.email,
       status: 'ACTIVE',
-      isDeleted: false
+      isDeleted: false,
     },
   });
-
 
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.oldPassword,
@@ -281,7 +280,7 @@ const changePassword = async (user: any, payload: any) => {
   await prisma.user.update({
     where: {
       id: userData.id,
-      isDeleted: false
+      isDeleted: false,
     },
     data: {
       password: hashedPassword,
@@ -345,7 +344,7 @@ const forgetPassword = async (email: string) => {
   const userData = await prisma.user.findUniqueOrThrow({
     where: {
       email,
-      isDeleted: false
+      isDeleted: false,
     },
     select: {
       status: true,
@@ -353,7 +352,7 @@ const forgetPassword = async (email: string) => {
       fullName: true,
       role: true,
       emailVerificationTokenExpires: true,
-      isCreatedByAdmin: true
+      isCreatedByAdmin: true,
     },
   });
 
@@ -361,7 +360,10 @@ const forgetPassword = async (email: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'User account is blocked');
   }
   if (userData.isCreatedByAdmin) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Contact admin for password reset');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Contact admin for password reset',
+    );
   }
 
   const resetToken = generateToken(
@@ -440,7 +442,7 @@ const resetPassword = async (payload: {
   const userData = await insecurePrisma.user.findFirstOrThrow({
     where: {
       email: decoded.email,
-      isDeleted: false
+      isDeleted: false,
     },
   });
 
@@ -463,7 +465,10 @@ const resetPassword = async (payload: {
   }
 
   if (userData.isCreatedByAdmin) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Contact admin for password reset');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Contact admin for password reset',
+    );
   }
 
   const newHashedPassword = await bcrypt.hash(payload.newPassword, 12);
@@ -471,7 +476,7 @@ const resetPassword = async (payload: {
   await prisma.user.update({
     where: {
       email: decoded.email,
-      isDeleted: false
+      isDeleted: false,
     },
     data: {
       password: newHashedPassword,

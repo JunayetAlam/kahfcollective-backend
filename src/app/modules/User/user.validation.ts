@@ -9,6 +9,8 @@ const updateUser = z.object({
       phoneNumber: z.string().optional(),
       introduction: z.string().optional(),
       address: z.string().optional(),
+      gender: z.nativeEnum(GenderEnum).optional(),
+      dateOfBirth: z.string().optional(),
     })
     .strict(),
 });

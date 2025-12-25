@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import { User, UserRoleEnum, UserStatus } from '@prisma/client';
+import { Group, User, UserRoleEnum, UserStatus } from '@prisma/client';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { prisma } from '../../utils/prisma';
 import * as bcrypt from 'bcrypt';
@@ -9,52 +9,82 @@ import {
   deleteFromDigitalOceanAWS,
   uploadToDigitalOceanAWS,
 } from '../../utils/uploadToDigitalOceanAWS';
+import { removeDataByPattern, updateData } from '../../redis/redis.utils';
+import {
+  getMany,
+  getOrSet,
+  GetOrSetCollection,
+  set,
+} from '../../redis/GetOrSet';
+import { UsersRedis } from './user.redis';
 
 const getAllUsersFromDB = async (query: any) => {
   query.isDeleted = false;
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
-  const result = await usersQuery
-    .search(['fullName', 'email'])
-    .filter()
-    .sort()
-    .customFields({
-      id: true,
-      address: true,
-      fullName: true,
-      email: true,
-      profile: true,
-      gender: true,
-      phoneNumber: true,
-      role: true,
-      introduction: true,
+  const result = await GetOrSetCollection({
+    key: `users-${JSON.stringify(query)}`,
+    ttl: 24 * 60 * 60,
+    query: usersQuery
+      .search(['fullName', 'email'])
+      .filter()
+      .sort()
+      .customFields({
+        id: true,
+        address: true,
+        fullName: true,
+        email: true,
+        profile: true,
+        gender: true,
+        phoneNumber: true,
+        role: true,
+        introduction: true,
 
-      currentClass: true,
-      roll: true,
-      subject: true,
+        currentClass: true,
+        roll: true,
+        subject: true,
 
-      status: true,
-      isUserVerified: true,
-      enrollCourses: {
-        select: {
-          courseId: true,
+        status: true,
+        isUserVerified: true,
+        enrollCourses: {
+          where: {
+            course: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            courseId: true,
+          },
         },
-      },
-      userGroups: {
-        select: {
-          group: {
-            select: {
-              id: true,
-              name: true,
+        userGroups: {
+          where: {
+            group: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            group: {
+              select: {
+                id: true,
+              },
             },
           },
         },
-      },
-    })
-    .exclude()
-    .paginate()
-    .execute();
+      })
+      .exclude()
+      .paginate()
+      .execute(),
+    singleDataKey: 'user',
+    // newData: true,
+  });
 
-  return result;
+  const users: (User & { userGroups: { group: Group }[] })[] = result.data;
+
+  const newUser = await UsersRedis(users);
+
+  return {
+    data: newUser,
+    meta: result.meta,
+  };
 };
 
 const getGroupUsers = async (groupId: string, query: any) => {
@@ -69,77 +99,121 @@ const getGroupUsers = async (groupId: string, query: any) => {
 };
 
 const getMyProfileFromDB = async (id: string) => {
-  const Profile = await prisma.user.findUniqueOrThrow({
-    where: {
-      id: id,
-    },
-    select: {
-      id: true,
-      address: true,
-      fullName: true,
-      email: true,
-      profile: true,
-      gender: true,
-      phoneNumber: true,
-      role: true,
-      isUserVerified: true,
-      status: true,
+  const Profile = await getOrSet({
+    key: `user-${id}-details`,
+    ttl: 24 * 60 * 60,
+    query: prisma.user.findUniqueOrThrow({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        address: true,
+        fullName: true,
+        email: true,
+        profile: true,
+        gender: true,
+        phoneNumber: true,
+        role: true,
+        isUserVerified: true,
+        status: true,
 
-      currentClass: true,
-      roll: true,
-      subject: true,
-      introduction: true,
+        currentClass: true,
+        roll: true,
+        subject: true,
+        introduction: true,
 
-      userGroups: {
-        select: {
-          group: {
-            select: {
-              id: true,
-              name: true,
+        enrollCourses: {
+          where: {
+            course: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            courseId: true,
+          },
+        },
+        userGroups: {
+          where: {
+            group: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
         },
       },
-    },
+    }),
   });
 
-  return Profile;
+  const newUser = await UsersRedis([Profile]);
+
+  return newUser[0];
 };
 
 const getUserDetailsFromDB = async (id: string) => {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id, isDeleted: false },
-    select: {
-      id: true,
-      address: true,
-      fullName: true,
-      email: true,
-      profile: true,
-      gender: true,
-      phoneNumber: true,
-      role: true,
-      isUserVerified: true,
+  const user = await getOrSet({
+    key: `user-${id}-details`,
+    ttl: 24 * 60 * 60,
+    query: prisma.user.findUniqueOrThrow({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        address: true,
+        fullName: true,
+        email: true,
+        profile: true,
+        gender: true,
+        phoneNumber: true,
+        role: true,
+        introduction: true,
 
-      currentClass: true,
-      roll: true,
-      subject: true,
-      introduction: true,
+        currentClass: true,
+        roll: true,
+        subject: true,
 
-      status: true,
-      userGroups: {
-        select: {
-          group: {
-            select: {
-              id: true,
-              name: true,
+        status: true,
+        isUserVerified: true,
+        enrollCourses: {
+          where: {
+            course: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            courseId: true,
+          },
+        },
+        userGroups: {
+          where: {
+            group: {
+              isDeleted: false,
+            },
+          },
+          select: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
         },
       },
-    },
+    }),
   });
 
-  return user;
+  const newUser = await UsersRedis([user]);
+
+  return newUser[0];
 };
 
 const updateProfileImg = async (
@@ -162,6 +236,7 @@ const updateProfileImg = async (
       deleteFromDigitalOceanAWS(previousImg);
     }
     req.user.profile = Location;
+    await updateData(`user-${id}-*`, { profile: Location }, 60 * 60 * 24);
     return result;
   }
   throw new AppError(httpStatus.NOT_FOUND, 'Please provide image');
@@ -180,6 +255,7 @@ const updateMyProfileIntoDB = async (
     },
     data: payload,
   });
+  await updateData(`user-${id}-*`, { ...payload }, 60 * 60 * 24);
   return result;
 };
 
@@ -203,6 +279,7 @@ const updateUserRoleStatusIntoDB = async (
       role: role,
     },
   });
+  await updateData(`user-${id}-*`, { role }, 60 * 60 * 24);
   return result;
 };
 
@@ -231,6 +308,7 @@ const updateProfileStatus = async (
       role: true,
     },
   });
+  await updateData(`user-${id}-*`, { status }, 60 * 60 * 24);
   return result;
 };
 
@@ -254,22 +332,42 @@ const toggleIsUserVerified = async (id: string, myId: string) => {
       'You cannot change your own status',
     );
   }
-  const result = await prisma.$runCommandRaw({
-    update: 'users',
-    updates: [
-      {
-        q: { _id: { $oid: id }, isDeleted: false },
-        u: [{ $set: { isUserVerified: { $not: '$isUserVerified' } } }],
+  const user = await getOrSet({
+    key: `user-${id}-details`,
+    ttl: 24 * 60 * 60,
+    query: prisma.user.findUniqueOrThrow({
+      where: {
+        id,
       },
-    ],
-    ordered: true,
+      select: {
+        id: true,
+        isUserVerified: true,
+      },
+    }),
   });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+  const result = await prisma.user.update({
+    where: {
+      id,
+      isDeleted: false,
+    },
+    data: {
+      isUserVerified: !user.isUserVerified,
+    },
+  });
+  await updateData(
+    `user-${id}-details`,
+    { isUserVerified: !user.isUserVerified },
+    60 * 60 * 24,
+  );
   return result;
 };
 
 const expireUserMonthlySubscription = async () => {
   const now = new Date();
-  return await prisma.user.updateMany({
+  const result = await prisma.user.updateMany({
     where: {
       expireIn: { lte: now },
       status: 'ACTIVE',
@@ -279,6 +377,8 @@ const expireUserMonthlySubscription = async () => {
       isUserVerified: false,
     },
   });
+  await removeDataByPattern(`user*`);
+  return result;
 };
 
 const deleteUser = async (id: string, myId: string) => {
@@ -301,6 +401,8 @@ const deleteUser = async (id: string, myId: string) => {
       emailVerificationToken: '',
     },
   });
+  await removeDataByPattern(`user-${id}-*`);
+  await removeDataByPattern(`users*`);
   return deleteUser;
 };
 
@@ -351,6 +453,7 @@ const createMultipleUser = async (users: User[]) => {
   const result = await prisma.user.createMany({
     data: allUsers,
   });
+  await removeDataByPattern(`users*`);
   return result;
 };
 

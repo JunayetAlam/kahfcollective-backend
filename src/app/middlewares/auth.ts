@@ -6,29 +6,37 @@ import AppError from '../errors/AppError';
 import { verifyToken } from '../utils/verifyToken';
 import { UserRoleEnum } from '@prisma/client';
 import { insecurePrisma } from '../utils/prisma';
+import { getOrSet } from '../redis/GetOrSet';
 
-type TupleHasDuplicate<T extends readonly unknown[]> =
-  T extends [infer F, ...infer R]
+type TupleHasDuplicate<T extends readonly unknown[]> = T extends [
+  infer F,
+  ...infer R,
+]
   ? F extends R[number]
-  ? true
-  : TupleHasDuplicate<R>
+    ? true
+    : TupleHasDuplicate<R>
   : false;
 
 type NoDuplicates<T extends readonly unknown[]> =
   TupleHasDuplicate<T> extends true ? never : T;
 
-const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_CHECK_ADMIN_VERIFICATION')[]>(
+const auth = <
+  T extends readonly (
+    | UserRoleEnum
+    | 'ANY'
+    | 'UNAUTHORIZED'
+    | 'NOT_CHECK_ADMIN_VERIFICATION'
+  )[],
+>(
   ...roles: NoDuplicates<T> extends never ? never : T
 ) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-
-
       const token = req.headers.authorization;
       if (roles.includes('UNAUTHORIZED')) {
         if (!token) {
           next();
-          return
+          return;
         }
       }
       if (!token) {
@@ -41,12 +49,22 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_C
       );
 
       // Check user is exist
-      const user = await insecurePrisma.user.findUniqueOrThrow({
-        where: {
-          id: verifyUserToken.id,
-          isDeleted: false
-        },
+      const user = await getOrSet({
+        key: `user-${verifyUserToken.id}-auth`,
+        ttl: 24 * 60 * 60,
+        query: insecurePrisma.user.findUniqueOrThrow({
+          where: {
+            id: verifyUserToken.id,
+            isDeleted: false,
+          },
+        }),
       });
+      // const user = await insecurePrisma.user.findUniqueOrThrow({
+      //   where: {
+      //     id: verifyUserToken.id,
+      //     isDeleted: false
+      //   },
+      // });
 
       if (!user) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
@@ -57,7 +75,10 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_C
       if (!roles.includes('NOT_CHECK_ADMIN_VERIFICATION')) {
         if (user.role === 'USER') {
           if (!user.isUserVerified) {
-            throw new AppError(httpStatus.UNAUTHORIZED, 'You are not verified by Admin!');
+            throw new AppError(
+              httpStatus.UNAUTHORIZED,
+              'You are not verified by Admin!',
+            );
           }
         }
       }
@@ -67,7 +88,7 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_C
       }
 
       if (user?.profile) {
-        verifyUserToken.profile = user?.profile
+        verifyUserToken.profile = user?.profile;
       }
 
       req.user = verifyUserToken;
@@ -75,11 +96,13 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY' | 'UNAUTHORIZED' | 'NOT_C
         next();
       } else {
         if (roles.length && !roles.includes(verifyUserToken.role)) {
-          throw new AppError(httpStatus.FORBIDDEN, `${user.role === 'USER' ? 'Student' : `${user.role[0].toUpperCase()}${user.role.slice(1, user.role.length + 1).toLowerCase()}`} is forbidden for the action.`);
+          throw new AppError(
+            httpStatus.FORBIDDEN,
+            `${user.role === 'USER' ? 'Student' : `${user.role[0].toUpperCase()}${user.role.slice(1, user.role.length + 1).toLowerCase()}`} is forbidden for the action.`,
+          );
         }
-        next()
+        next();
       }
-
     } catch (error) {
       next(error);
     }

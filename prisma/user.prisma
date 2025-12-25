@@ -7,8 +7,9 @@ model User {
   visiblePassword String?
   role            UserRoleEnum @default(USER)
 
-  gender  GenderEnum
-  address String
+  gender      GenderEnum
+  address     String
+  dateOfBirth DateTime?
 
   // education
   currentClass     String

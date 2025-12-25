@@ -9,6 +9,8 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
 import { toggleDelete } from '../../utils/toggleDelete';
+import { updateData } from '../../redis/redis.utils';
+import { get } from '../../redis/GetOrSet';
 
 const createCourse = async (data: Course, userId: string) => {
   data.instructorId = userId;
@@ -84,15 +86,15 @@ const getAllCourses = async ({
           courseContents: {
             where: {
               isDeleted: false,
-              status: 'PUBLISHED'
-            }
+              status: 'PUBLISHED',
+            },
           },
           enrollCourses: {
             where: {
               user: {
                 isDeleted: false,
               },
-            }
+            },
           },
         },
       },
@@ -234,10 +236,7 @@ const toggleDeleteCourse = async (
   role: UserRoleEnum,
   userId: string,
 ) => {
-  const result = await toggleDelete(
-    id,
-    'courses',
-  );
+  const result = await toggleDelete(id, 'courses');
   return result;
 };
 
@@ -312,7 +311,7 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
   const user = await prisma.user.findUniqueOrThrow({
     where: {
       id: userId,
-      isDeleted: false
+      isDeleted: false,
     },
     select: {
       id: true,
@@ -361,6 +360,21 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
         },
       },
     });
+    const userData = await get({ key: `user-${userId}-details` });
+    if (userData) {
+      await updateData(
+        `user-${userId}-details`,
+        {
+          ...userData,
+          enrollCourses: [
+            ...userData.enrollCourses.filter(
+              (item: any) => item.courseId !== courseId,
+            ),
+          ],
+        },
+        24 * 60 * 60,
+      );
+    }
     return result;
   }
 
@@ -371,6 +385,17 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
     },
   });
 
+  const userData = await get({ key: `user-${userId}-details` });
+  if (userData) {
+    await updateData(
+      `user-${userId}-details`,
+      {
+        ...userData,
+        enrollCourses: [...userData.enrollCourses, { courseId }],
+      },
+      24 * 60 * 60,
+    );
+  }
   return result;
 };
 
@@ -379,8 +404,8 @@ const enrolledUserOnCourse = async (courseId: string) => {
     where: {
       courseId,
       user: {
-        isDeleted: false
-      }
+        isDeleted: false,
+      },
     },
     select: {
       user: {
