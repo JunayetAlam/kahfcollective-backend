@@ -11,7 +11,7 @@ const OptionsSchema = z
   .strict();
 
 const normalQuizZodType = z.object({
-  type: z.nativeEnum(QuizType),
+  type: z.enum(QuizType),
   options: OptionsSchema.optional(),
   question: z.string(),
   rightAnswer: z.string(),
@@ -22,7 +22,7 @@ const updateContent = z.object({
     .object({
       title: z.string().optional(),
       description: z.string().optional(),
-      status: z.nativeEnum(ContentStatusEnum).optional(),
+      status: z.enum(ContentStatusEnum).optional(),
     })
     .strict(),
 });
@@ -31,10 +31,10 @@ const createVideoContent = z.object({
   body: z
     .object({
       courseId: z.string(),
-      type: z.nativeEnum(CourseContentTypeEnum),
+      type: z.enum(CourseContentTypeEnum),
       title: z.string(),
       description: z.string(),
-      status: z.nativeEnum(ContentStatusEnum),
+      status: z.enum(ContentStatusEnum),
     })
     .strict(),
 });
@@ -44,7 +44,7 @@ const createQuestionContent = z.object({
     .object({
       courseId: z.string(),
       title: z.string(),
-      status: z.nativeEnum(ContentStatusEnum),
+      status: z.enum(ContentStatusEnum),
       question: z.string(),
       description: z.string(),
     })
@@ -56,7 +56,7 @@ const updateQuestionContent = z.object({
     .object({
       title: z.string().optional(),
       contentId: z.string(),
-      status: z.nativeEnum(ContentStatusEnum).optional(),
+      status: z.enum(ContentStatusEnum).optional(),
       question: z.string().optional(),
     })
     .strict(),
@@ -86,7 +86,7 @@ const createQuizContent = z.object({
       courseId: z.string(),
       title: z.string(),
       description: z.string(),
-      status: z.nativeEnum(ContentStatusEnum),
+      status: z.enum(ContentStatusEnum),
       quizzes: z.array(normalQuizZodType).min(1),
     })
     .strict(),
@@ -110,7 +110,7 @@ const updateQuiz = z.object({
       options: OptionsSchema.optional(),
       question: z.string().optional(),
       rightAnswer: z.string().optional(),
-      type: z.nativeEnum(QuizType)
+      type: z.enum(QuizType)
     })
     .strict(),
 });

@@ -3,8 +3,8 @@ import { z } from "zod";
 
 const payment = z.object({
     body: z.object({
-        paymentType: z.nativeEnum(PaymentType),
+        paymentType: z.enum(PaymentType),
         amount: z.number().optional()
     }).strict()
 })
-export const PaymentValidation = {payment};
+export const PaymentValidation = { payment };

@@ -4,7 +4,7 @@ import { z } from 'zod';
 const createContent = z.object({
   body: z
     .object({
-      contentType: z.nativeEnum(ContentTypeEnum),
+      contentType: z.enum(ContentTypeEnum),
       title: z.string(),
       description: z.string(),
       type: z.string().optional(),
@@ -17,7 +17,7 @@ const createContent = z.object({
 const updateContent = z.object({
   body: z
     .object({
-      contentType: z.nativeEnum(ContentTypeEnum).optional(),
+      contentType: z.enum(ContentTypeEnum).optional(),
       title: z.string().optional(),
       description: z.string().optional(),
       type: z.string().optional(),

@@ -7,8 +7,7 @@ const createCourse = z.object({
       title: z.string(),
       instructorId: z.string(),
       description: z.string(),
-      language: z.string(),
-      status: z.nativeEnum(CourseStatus).optional(),
+      status: z.enum(CourseStatus).optional(),
     })
     .strict(),
 });
@@ -19,8 +18,16 @@ const updateCourse = z.object({
       title: z.string().optional(),
       instructorId: z.string().optional(),
       description: z.string().optional(),
-      language: z.string().optional(),
-      status: z.nativeEnum(CourseStatus).optional(),
+      status: z.enum(CourseStatus).optional(),
+    })
+    .strict(),
+});
+
+const toggleAssignToGroup = z.object({
+  body: z
+    .object({
+      courseId: z.string(),
+      groupId: z.string(),
     })
     .strict(),
 });
@@ -28,7 +35,7 @@ const updateCourse = z.object({
 const toggleStatus = z.object({
   body: z
     .object({
-      status: z.nativeEnum(CourseStatus),
+      status: z.enum(CourseStatus),
     })
     .strict(),
 });

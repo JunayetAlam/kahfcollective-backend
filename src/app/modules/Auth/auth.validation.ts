@@ -6,13 +6,13 @@ const loginUser = z.object({
     .object({
       email: z
         .string({
-          required_error: 'Email is required!',
+          error: 'Email is required!',
         })
         .email({
           message: 'Invalid email format!',
         }),
       password: z.string({
-        required_error: 'Password is required!',
+        error: 'Password is required!',
       }),
     })
     .strict(),
@@ -27,7 +27,7 @@ const registerUser = z.object({
       password: z.string().min(6).max(16),
       address: z.string().min(1),
       introduction: z.string().min(1),
-      gender: z.nativeEnum(GenderEnum),
+      gender: z.enum(GenderEnum),
       currentClass: z.string(),
       roll: z.number(),
       subject: z.string().optional(),
@@ -39,7 +39,7 @@ const verifyEmailValidationSchema = z.object({
   body: z.object({
     token: z
       .string({
-        required_error: 'Verification token is required',
+        error: 'Verification token is required',
       })
       .min(1, {
         message: 'Token cannot be empty',
@@ -51,7 +51,7 @@ const resendVerificationEmailValidationSchema = z.object({
   body: z.object({
     email: z
       .string({
-        required_error: 'Email is required',
+        error: 'Email is required',
       })
       .email({
         message: 'Use a valid email format',
@@ -63,11 +63,11 @@ const changePasswordValidationSchema = z.object({
   body: z
     .object({
       oldPassword: z.string({
-        required_error: 'Current password is required!',
+        error: 'Current password is required!',
       }),
       newPassword: z
         .string({
-          required_error: 'New password is required!',
+          error: 'New password is required!',
         })
         .min(6, {
           message: 'Password must be at least 6 characters long',
@@ -80,7 +80,7 @@ const forgetPasswordValidationSchema = z.object({
   body: z.object({
     email: z
       .string({
-        required_error: 'Email is required',
+        error: 'Email is required',
       })
       .email({
         message: 'Use a valid email format',
@@ -92,14 +92,14 @@ const resetPasswordValidationSchema = z.object({
   body: z.object({
     newPassword: z
       .string({
-        required_error: 'New password is required!',
+        error: 'New password is required!',
       })
       .min(6, {
         message: 'Password must be at least 6 characters long',
       }),
     token: z
       .string({
-        required_error: 'Verification token is required',
+        error: 'Verification token is required',
       })
       .min(1, {
         message: 'Token cannot be empty',

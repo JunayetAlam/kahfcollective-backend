@@ -9,6 +9,7 @@ import { CourseContentRouters } from '../modules/CourseContent/coursecontent.rou
 import { PaymentRoutes } from '../modules/Payment/payment.route';
 import { PostRouters } from '../modules/Post/post.route';
 import { QuizAnswerRouters } from '../modules/Quiz_Answer/quiz_answer.route';
+import { UtilsRoutes } from '../modules/Utils/utils.route';
 const router = express.Router();
 
 const moduleRoutes = [
@@ -53,6 +54,10 @@ const moduleRoutes = [
   {
     path: '/answer-quizzes',
     route: QuizAnswerRouters,
+  },
+  {
+    path: '/utils',
+    route: UtilsRoutes,
   },
 ];
 

@@ -8,9 +8,9 @@ model Group {
     createdAt    DateTime      @default(now())
     updatedAt    DateTime      @updatedAt
     contents     Content[]
-    forums       Forum[]
     userGroups   UserGroup[]
     groupCourses GroupCourse[]
+    forumGroups  ForumGroup[]
 
     @@map("groups")
 }

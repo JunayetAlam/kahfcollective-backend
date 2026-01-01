@@ -2,18 +2,22 @@ model Course {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     title        String
+    instructorId String       @db.ObjectId
     description  String
     status       CourseStatus @default(ACTIVE)
-    language     String
+    thumbnail    String?
     isDeleted    Boolean      @default(false)
-    instructorId String       @db.ObjectId
+    forAll       Boolean      @default(false)
 
     forums          Forum[]
-    courseContents  CourseContents[]
     instructor      User             @relation(fields: [instructorId], references: [id])
     completeCourses CompleteCourse[]
     enrollCourses   EnrollCourse[]
     groupCourses    GroupCourse[]
+
+    chapters       Chapter[]
+    semesters      Semester[]
+    courseContents CourseContents[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

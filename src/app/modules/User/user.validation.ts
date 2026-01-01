@@ -9,7 +9,7 @@ const updateUser = z.object({
       phoneNumber: z.string().optional(),
       introduction: z.string().optional(),
       address: z.string().optional(),
-      gender: z.nativeEnum(GenderEnum).optional(),
+      gender: z.enum(GenderEnum).optional(),
       dateOfBirth: z.string().optional(),
     })
     .strict(),
@@ -17,7 +17,7 @@ const updateUser = z.object({
 
 const updateUserRoleSchema = z.object({
   body: z.object({
-    role: z.nativeEnum(UserRoleEnum),
+    role: z.enum(UserRoleEnum),
   }),
 });
 const updateUserStatus = z.object({
@@ -34,7 +34,7 @@ const createMultipleUser = z.object({
         email: z.string().email(),
         password: z.string(),
         isUserVerified: z.boolean().optional(),
-        gender: z.nativeEnum(GenderEnum).optional(),
+        gender: z.enum(GenderEnum).optional(),
         address: z.string(),
         phoneNumber: z.string(),
         introduction: z.string().optional(),

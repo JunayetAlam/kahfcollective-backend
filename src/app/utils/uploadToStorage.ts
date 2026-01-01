@@ -84,7 +84,10 @@ export const uploadToStorage = async (
     });
   } catch (error) {
     console.error('Error uploading file:', error);
-    throw error;
+    return {
+      Location: '',
+      public_id: '',
+    };
   }
 };
 
@@ -102,7 +105,6 @@ export const deleteFromStorage = async (
     console.log(`Deleted file: ${publicId}`);
   } catch (error: any) {
     console.error('Error deleting file:', error);
-    throw error;
   }
 };
 

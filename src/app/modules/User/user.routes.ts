@@ -4,7 +4,7 @@ import { UserControllers } from './user.controller';
 import { parseBody } from '../../middlewares/parseBody';
 import validateRequest from '../../middlewares/validateRequest';
 import { userValidation } from './user.validation';
-import { upload } from '../../utils/fileUploader';
+import { upload } from '../../middlewares/upload';
 
 const router = express.Router();
 

@@ -43,7 +43,13 @@ const updateCourse = catchAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req?.user?.id;
   const role = req?.user?.role;
-  const result = await CourseService.updateCourse(id, req.body, userId, role);
+  const result = await CourseService.updateCourse({
+    id,
+    data: req.body,
+    userId,
+    role,
+    thumbnail: req.file,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -56,7 +62,7 @@ const toggleDeleteCourse = catchAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req?.user?.id;
   const role = req?.user?.role;
-  const result = await CourseService.toggleDeleteCourse(id, role, userId);
+  const result = await CourseService.toggleDeleteCourse(id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -68,13 +74,9 @@ const toggleDeleteCourse = catchAsync(async (req, res) => {
 const toggleCourseStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  const userId = req?.user?.id;
-  const role = req?.user?.role;
   const result = await CourseService.toggleCourseStatus(
     id,
     status,
-    role,
-    userId,
   );
 
   sendResponse(res, {
@@ -142,6 +144,17 @@ const toggleAssignCourseToGroup = catchAsync(async (req, res) => {
   });
 });
 
+const toggleAllowToAll = catchAsync(async (req, res) => {
+  const { courseId } = req.params;
+  const result = await CourseService.toggleAllowToAll(courseId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Course allow to all toggled successfully',
+    data: result,
+  });
+});
+
 export const courseController = {
   createCourse,
   getAllCourses,
@@ -154,4 +167,5 @@ export const courseController = {
   toggleEnrollCourse,
   enrolledUserOnCourse,
   toggleAssignCourseToGroup,
+  toggleAllowToAll,
 };

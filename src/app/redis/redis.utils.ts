@@ -54,3 +54,8 @@ export const updateData = async (
   } while (cursor !== '0');
   return updated;
 };
+
+export const invalidateRedis = async () => {
+  const client = redis;
+  await client.flushDb();
+};

@@ -1,24 +1,65 @@
+model Semester {
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
+    name String
+
+    courseId String @db.ObjectId
+
+    course Course @relation(fields: [courseId], references: [id])
+
+    chapters       Chapter[]
+    courseContents CourseContents[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("semesters")
+}
+
+model Chapter {
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
+    name String
+
+    semesterId String @db.ObjectId
+    courseId   String @db.ObjectId
+
+    semester Semester @relation(fields: [semesterId], references: [id])
+    course   Course   @relation(fields: [courseId], references: [id])
+
+    courseContents CourseContents[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("chapters")
+}
+
 model CourseContents {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    type         CourseContentTypeEnum
-    title        String
-    description  String
-    videoUrl     String?
-    pdfUrl       String?
-    quizzes      Quiz[]
-    status       ContentStatusEnum
-    isDeleted    Boolean               @default(false)
-    index        Int
-    courseId     String                @db.ObjectId
-    instructorId String                @db.ObjectId
+    type        CourseContentTypeEnum
+    title       String
+    description String
+    videoUrl    String?
+    pdfUrl      String?
+    text        String?
+    meetingLink String?
+    videoLink   String?
+    quizzes     Quiz[]
+    status      ContentStatusEnum
+    isDeleted   Boolean               @default(false)
+    index       Int
 
-    course     Course @relation(fields: [courseId], references: [id])
-    instructor User   @relation(fields: [instructorId], references: [id])
+    courseId   String @db.ObjectId
+    semesterId String @db.ObjectId
+    chapterId  String @db.ObjectId
 
     createdAt       DateTime  @default(now())
     updatedAt       DateTime  @updatedAt
     courseQuestions Question?
+
+    course   Course    @relation(fields: [courseId], references: [id])
+    semester Semester? @relation(fields: [semesterId], references: [id])
+    chapter  Chapter?  @relation(fields: [chapterId], references: [id])
 
     @@map("course_contents")
 }
@@ -27,6 +68,9 @@ enum CourseContentTypeEnum {
     VIDEO
     QUIZ
     PDF
+    TEXT
+    VIDEO_LINK
+    MEETING_LINK
 }
 
 enum ContentStatusEnum {

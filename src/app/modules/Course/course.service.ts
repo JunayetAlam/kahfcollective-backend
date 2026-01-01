@@ -11,8 +11,10 @@ import { prisma } from '../../utils/prisma';
 import { toggleDelete } from '../../utils/toggleDelete';
 import { updateData } from '../../redis/redis.utils';
 import { get } from '../../redis/GetOrSet';
+import { deleteFromStorage, uploadToStorage } from '../../utils/uploadToStorage';
+import { singleCourseGetOrQuery } from './course.utils';
 
-const createCourse = async (data: Course) => {
+const createCourse = async (data: Course, thumbnail?: Express.Multer.File) => {
   await prisma.user.findUniqueOrThrow({
     where: {
       id: data.instructorId,
@@ -20,10 +22,14 @@ const createCourse = async (data: Course) => {
       isUserVerified: true,
     },
   });
+
+  if (thumbnail) {
+    const link = await uploadToStorage(thumbnail);
+    data.thumbnail = link.Location;
+  }
   return await prisma.course.create({
     data: {
       ...data,
-      status: 'ACTIVE',
     },
   });
 };
@@ -37,17 +43,37 @@ const getAllCourses = async ({
   role?: UserRoleEnum;
   userId?: string;
 }) => {
-  if (role === UserRoleEnum.INSTRUCTOR) {
-    query.instructorId = userId;
-  }
+
   query.isDeleted = false;
-  if (role === UserRoleEnum.USER) {
+
+
+  if (role === UserRoleEnum.USER && userId) {
+
     query.status = 'ACTIVE';
-    query.enrollCourses = {
-      some: {
-        userId,
-      },
-    };
+    if (query.forAll === 'true') {
+      query.forAll = true;
+    } else if (query.enrollCourses === 'true' && userId) {
+      query.groupCourses = {
+        some: {
+          group: {
+            userGroups: {
+              some: {
+                userId,
+              }
+            },
+            isDeleted: false,
+          },
+        }
+      }
+      delete query.enrollCourses;
+    } else {
+      query.OR = singleCourseGetOrQuery(userId)
+      delete query.forAll;
+      delete query.enrollCourses;
+    }
+  } else if (!role || !userId) {
+    query.forAll = true;
+    delete query.enrollCourses;
   }
 
   const coursesQuery = new QueryBuilder<typeof prisma.course>(
@@ -64,9 +90,9 @@ const getAllCourses = async ({
       title: true,
       description: true,
       status: true,
-      language: true,
       createdAt: true,
       updatedAt: true,
+      thumbnail: true,
 
       groupCourses: {
         where: {
@@ -133,29 +159,16 @@ const getCourseById = async ({
   const query: any = {
     id,
   };
-  if (role === UserRoleEnum.INSTRUCTOR) {
-    query.instructorId = userId;
-  }
 
-  if (role === UserRoleEnum.USER) {
+
+  if (role === UserRoleEnum.USER && userId) {
     query.isDeleted = false;
     query.status = 'ACTIVE';
-    const userAllGroup = await prisma.userGroup.findMany({
-      where: {
-        userId,
-      },
-      select: {
-        groupId: true,
-      },
-    });
-    const userAllGroupId = userAllGroup.map(item => item.groupId);
-    query.groupCourses = {
-      some: {
-        groupId: {
-          in: userAllGroupId,
-        },
-      },
-    };
+    query.OR = singleCourseGetOrQuery(userId)
+  } else if (!role || !userId) {
+    query.isDeleted = false;
+    query.status = 'ACTIVE';
+    query.forAll = true;
   }
 
   const course = await prisma.course.findUnique({
@@ -213,12 +226,27 @@ const getCourseById = async ({
   };
 };
 
-const updateCourse = async (
-  id: string,
-  data: Partial<Course>,
-  userId?: string,
-  role?: UserRoleEnum,
-) => {
+const updateCourse = async ({
+  id,
+  data,
+  thumbnail,
+}: {
+  id: string;
+  data: Partial<Course>;
+  thumbnail?: Express.Multer.File;
+  userId?: string;
+  role?: UserRoleEnum;
+}) => {
+
+  const course = await prisma.course.findFirstOrThrow({
+    where: {
+      id,
+    },
+    select: {
+      thumbnail: true,
+    },
+  });
+
   if (data.instructorId) {
     const instructor = await prisma.user.findUnique({
       where: {
@@ -231,27 +259,43 @@ const updateCourse = async (
       throw new AppError(httpStatus.NOT_FOUND, 'Instructor not found');
     }
   }
-  return await prisma.course.update({
-    where: {
-      id,
-      ...(role !== 'SUPERADMIN' && { instructorId: userId }),
-    },
-    data,
-    include: {
-      instructor: {
-        select: {
-          id: true,
-          fullName: true,
+  let location = ''
+  if (thumbnail) {
+    const link = await uploadToStorage(thumbnail);
+    if (link.Location) {
+      data.thumbnail = link.Location;
+      location = link.Location;
+    }
+  }
+  try {
+    const result = await prisma.course.update({
+      where: {
+        id,
+      },
+      data,
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            fullName: true,
+          },
         },
       },
-    },
-  });
+    });
+    if (course.thumbnail && location) {
+      deleteFromStorage(course.thumbnail)
+    }
+    return result
+  } catch (error) {
+    if (location) {
+      deleteFromStorage(location)
+    }
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Something went wrong')
+  }
 };
 
 const toggleDeleteCourse = async (
   id: string,
-  role: UserRoleEnum,
-  userId: string,
 ) => {
   const result = await toggleDelete(id, 'courses');
   return result;
@@ -260,13 +304,10 @@ const toggleDeleteCourse = async (
 const toggleCourseStatus = async (
   id: string,
   status: CourseStatus,
-  role: UserRoleEnum,
-  userId: string,
 ) => {
   return await prisma.course.update({
     where: {
       id,
-      ...(role !== 'SUPERADMIN' && { instructorId: userId }),
     },
     data: { status },
     include: {
@@ -477,6 +518,29 @@ const toggleAssignCourseToGroup = async (courseId: string, groupId: string) => {
   });
 };
 
+
+
+const toggleAllowToAll = async (courseId: string) => {
+  const course = await prisma.course.findUniqueOrThrow({
+    where: {
+      id: courseId,
+    },
+    select: {
+      forAll: true,
+    },
+  });
+
+  const result = await prisma.course.update({
+    where: {
+      id: courseId,
+    },
+    data: {
+      forAll: !course.forAll,
+    },
+  });
+  return result;
+};
+
 export const CourseService = {
   createCourse,
   getAllCourses,
@@ -489,4 +553,5 @@ export const CourseService = {
   toggleEnrollCourse,
   enrolledUserOnCourse,
   toggleAssignCourseToGroup,
+  toggleAllowToAll
 };

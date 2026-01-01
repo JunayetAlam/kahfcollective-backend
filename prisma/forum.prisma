@@ -4,22 +4,38 @@ model Forum {
     title     String
     forumType ForumTypeEnum
 
-    description String
-    courseId    String? @db.ObjectId
-    groupId     String? @db.ObjectId
-    country     String?
-    isDeleted   Boolean @default(false)
+    forAll       Boolean @default(false)
+    forAllGroups Boolean @default(false)
+    description  String
+    courseId     String? @db.ObjectId
+    country      String?
+    isDeleted    Boolean @default(false)
 
-    events Events[]
-    posts  Post[]
+    events      Events[]
+    posts       Post[]
+    forumGroups ForumGroup[]
 
     course Course? @relation(fields: [courseId], references: [id])
-    group  Group?  @relation(fields: [groupId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@map("forums")
+}
+
+model ForumGroup {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    forumId String @db.ObjectId
+    groupId String @db.ObjectId
+
+    forum Forum @relation(fields: [forumId], references: [id])
+    group Group @relation(fields: [groupId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("forum_groups")
 }
 
 enum ForumTypeEnum {

@@ -3,12 +3,16 @@ import auth from '../../middlewares/auth';
 import validateRequest from '../../middlewares/validateRequest';
 import { courseController } from './course.controller';
 import { courseValidation } from './course.validation';
+import { upload } from '../../middlewares/upload';
+import { parseBody } from '../../middlewares/parseBody';
 
 const router = express.Router();
 
 router.post(
   '/',
+  upload.single('thumbnail'),
   auth('INSTRUCTOR', 'SUPERADMIN'),
+  parseBody,
   validateRequest.body(courseValidation.createCourse),
   courseController.createCourse,
 );
@@ -20,7 +24,9 @@ router.get('/admin/:id', auth('SUPERADMIN'), courseController.getCourseById);
 
 router.patch(
   '/:id',
+  upload.single('thumbnail'),
   auth('INSTRUCTOR', 'SUPERADMIN'),
+  parseBody,
   validateRequest.body(courseValidation.updateCourse),
   courseController.updateCourse,
 );
@@ -60,5 +66,10 @@ router.post(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(courseValidation.toggleAssignCourseToGroup),
   courseController.toggleAssignCourseToGroup,
+);
+router.patch(
+  '/:courseId/toggle-allow-to-all',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  courseController.toggleAllowToAll,
 );
 export const CourseRouters = router;
