@@ -56,7 +56,7 @@ router.post(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   courseController.toggleEnrollCourse,
 );
-router.post(
+router.get(
   '/enrolled-students/:courseId',
   auth('INSTRUCTOR', 'SUPERADMIN'),
   courseController.enrolledUserOnCourse,

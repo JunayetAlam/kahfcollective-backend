@@ -105,7 +105,7 @@ const getAllPost = catchAsync(async (req: Request, res) => {
 const getAllReplyForSpecificPost = catchAsync(async (req: Request, res) => {
   const { postId } = req.params;
 
-  const result = await PostService.getAllReplyForSpecificPost(postId, req.query);
+  const result = await PostService.getAllReplyForSpecificPost(postId, req.query, req.user?.role);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

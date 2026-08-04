@@ -99,6 +99,10 @@ export const GetOrSetCollection = async ({
         ids: string[];
         meta: any;
       } = JSON.parse(isDataExist);
+
+      if (!parseData.ids || parseData.ids.length === 0) {
+        return { data: [], meta: parseData.meta };
+      }
       const idArrayForQuery = parseData.ids.map(
         item => `${singleDataKey}-${item}-details`,
       );

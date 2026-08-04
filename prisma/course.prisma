@@ -12,7 +12,7 @@ model Course {
     forums          Forum[]
     instructor      User             @relation(fields: [instructorId], references: [id])
     completeCourses CompleteCourse[]
-    enrollCourses   EnrollCourse[]
+    unenrollCourses UnenrollCourse[]
     groupCourses    GroupCourse[]
 
     chapters       Chapter[]

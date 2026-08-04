@@ -42,7 +42,7 @@ model User {
   userGroups      UserGroup[]
   reacts          React[]
   completeCourses CompleteCourse[]
-  enrollCourses   EnrollCourse[]
+  unenrollCourses UnenrollCourse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -9,10 +9,11 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
 import { toggleDelete } from '../../utils/toggleDelete';
-import { updateData } from '../../redis/redis.utils';
+import { removeDataByPattern, updateData } from '../../redis/redis.utils';
 import { get } from '../../redis/GetOrSet';
 import { deleteFromStorage, uploadToStorage } from '../../utils/uploadToStorage';
-import { singleCourseGetOrQuery } from './course.utils';
+import { AndMethodQuery, singleCourseGetOrQuery } from './course.utils';
+import { UserServices } from '../User/user.service';
 
 const createCourse = async (data: Course, thumbnail?: Express.Multer.File) => {
   await prisma.user.findUniqueOrThrow({
@@ -53,27 +54,23 @@ const getAllCourses = async ({
     if (query.forAll === 'true') {
       query.forAll = true;
     } else if (query.enrollCourses === 'true' && userId) {
-      query.groupCourses = {
-        some: {
-          group: {
-            userGroups: {
-              some: {
-                userId,
-              }
-            },
-            isDeleted: false,
-          },
-        }
-      }
-      delete query.enrollCourses;
+      query.AND = AndMethodQuery(userId),
+        delete query.enrollCourses;
     } else {
-      query.OR = singleCourseGetOrQuery(userId)
+      query.OR = singleCourseGetOrQuery(userId,)
       delete query.forAll;
       delete query.enrollCourses;
     }
   } else if (!role || !userId) {
     query.forAll = true;
     delete query.enrollCourses;
+  } else {
+    delete query.enrollCourses;
+    if (query.forAll === 'true') {
+      query.forAll = true
+    } else {
+      delete query.forAll
+    }
   }
 
   const coursesQuery = new QueryBuilder<typeof prisma.course>(
@@ -105,6 +102,19 @@ const getAllCourses = async ({
             select: {
               id: true,
               name: true,
+              ...(!query.forAll && {
+                _count: {
+                  select: {
+                    userGroups: {
+                      where: {
+                        user: {
+                          isDeleted: false,
+                        }
+                      }
+                    }
+                  }
+                }
+              })
             },
           },
         },
@@ -123,15 +133,17 @@ const getAllCourses = async ({
               status: 'PUBLISHED',
             },
           },
-          enrollCourses: {
-            where: {
-              user: {
-                isDeleted: false,
-              },
-            },
-          },
+          ...(!query.forAll && {
+            unenrollCourses: {
+              where: {
+                userId
+              }
+            }
+          })
+
         },
       },
+
       ...(role === 'USER' && {
         completeCourses: {
           where: {
@@ -411,7 +423,7 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
     );
   }
 
-  const isAlreadyEnrolled = await prisma.enrollCourse.findUnique({
+  const isAlreadyUnenrolled = await prisma.unenrollCourse.findUnique({
     where: {
       userId_courseId: {
         courseId,
@@ -419,8 +431,8 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
       },
     },
   });
-  if (isAlreadyEnrolled) {
-    const result = await prisma.enrollCourse.delete({
+  if (isAlreadyUnenrolled) {
+    const result = await prisma.unenrollCourse.delete({
       where: {
         userId_courseId: {
           courseId,
@@ -434,8 +446,8 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
         `user-${userId}-details`,
         {
           ...userData,
-          enrollCourses: [
-            ...userData.enrollCourses.filter(
+          unenrollCourses: [
+            ...userData.unenrollCourses.filter(
               (item: any) => item.courseId !== courseId,
             ),
           ],
@@ -443,10 +455,13 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
         24 * 60 * 60,
       );
     }
+
+    removeDataByPattern(`users-enrolled-*`)
+    removeDataByPattern(`users-multiple-group-*`);
     return result;
   }
 
-  const result = await prisma.enrollCourse.create({
+  const result = await prisma.unenrollCourse.create({
     data: {
       userId,
       courseId,
@@ -459,34 +474,45 @@ const toggleEnrollCourse = async (userId: string, courseId: string) => {
       `user-${userId}-details`,
       {
         ...userData,
-        enrollCourses: [...userData.enrollCourses, { courseId }],
+        unenrollCourses: [...userData.unenrollCourses, { courseId }],
       },
       24 * 60 * 60,
     );
   }
+  removeDataByPattern(`users-*`)
+  removeDataByPattern(`users-multiple-group-*`);
   return result;
 };
 
-const enrolledUserOnCourse = async (courseId: string) => {
-  const result = await prisma.enrollCourse.findMany({
-    where: {
-      courseId,
-      user: {
-        isDeleted: false,
-      },
+const enrolledUserOnCourse = async (courseId: string, query: Record<string, any>) => {
+  query.AND = [
+    {
+      unenrollCourses: {
+        none: {
+          courseId
+        }
+      }
     },
-    select: {
-      user: {
-        select: {
-          fullName: true,
-          email: true,
-          id: true,
-        },
-      },
-    },
-  });
-  const returnedResult = result.map(item => item.user);
-  return returnedResult;
+    {
+      userGroups: {
+        some: {
+          group: {
+            isDeleted: false,
+            groupCourses: {
+              some: {
+                courseId,
+                course: {
+                  isDeleted: false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+  const result = UserServices.getAllUsersFromDB(query, 'users-enrolled')
+  return result;
 };
 
 const toggleAssignCourseToGroup = async (courseId: string, groupId: string) => {

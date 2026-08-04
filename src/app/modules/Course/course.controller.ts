@@ -4,7 +4,8 @@ import sendResponse from '../../utils/sendResponse';
 import { CourseService } from './course.service';
 
 const createCourse = catchAsync(async (req, res) => {
-  const result = await CourseService.createCourse(req.body);
+  const thumbnail = req.file;
+  const result = await CourseService.createCourse(req.body, thumbnail);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -121,12 +122,12 @@ const toggleEnrollCourse = catchAsync(async (req, res) => {
 });
 const enrolledUserOnCourse = catchAsync(async (req, res) => {
   const { courseId } = req.params;
-  const result = await CourseService.enrolledUserOnCourse(courseId);
+  const result = await CourseService.enrolledUserOnCourse(courseId, req.query || {});
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'Enrolled User retrieved successfully',
-    data: result,
+    ...result,
   });
 });
 

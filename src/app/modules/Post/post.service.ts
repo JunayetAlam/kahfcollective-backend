@@ -214,6 +214,11 @@ const getAllPost = async (query: any) => {
 
     query.isDeleted = false;
 
+    if (query.forumType) {
+        query.forum = { forumType: query.forumType };
+        delete query.forumType;
+    }
+
     const postsQuery = new QueryBuilder(
         prisma.post,
         query
@@ -226,9 +231,11 @@ const getAllPost = async (query: any) => {
         .customFields({
             id: true,
             message: true,
+            forumId: true,
             createdAt: true,
             updatedAt: true,
             isPublished: true,
+            isDeleted: true,
             _count: {
                 select: {
                     reacts: {
@@ -249,6 +256,13 @@ const getAllPost = async (query: any) => {
                     fullName: true,
                     profile: true
                 }
+            },
+            forum: {
+                select: {
+                    id: true,
+                    title: true,
+                    forumType: true
+                }
             }
         })
         .execute();
@@ -256,13 +270,13 @@ const getAllPost = async (query: any) => {
     return result;
 };
 
-const getAllReplyForSpecificPost = async (postId: string, query: any) => {
+const getAllReplyForSpecificPost = async (postId: string, query: any, role?: UserRoleEnum) => {
     // Check if post exists
     const post = await prisma.post.findUnique({
         where: {
             id: postId,
             isDeleted: false,
-            isPublished: true
+            ...(role === 'USER' || !role ? { isPublished: true } : {}),
         },
         select: {
             id: true

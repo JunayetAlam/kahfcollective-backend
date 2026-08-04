@@ -14,7 +14,13 @@ export const checkForumAndGroupEnrolled = async (userId: string, forumId: string
             isDeleted: false
         },
         select: {
-            groupId: true
+            forAll: true,
+            forAllGroups: true,
+            forumGroups: {
+                select: {
+                    groupId: true
+                }
+            }
         }
     })
     if (!isForumExist) {
@@ -25,11 +31,25 @@ export const checkForumAndGroupEnrolled = async (userId: string, forumId: string
         return { forum: isForumExist };
     }
 
+    if (isForumExist.forAll || isForumExist.forAllGroups) {
+        return { forum: isForumExist };
+    }
 
+    const groupIds = isForumExist.forumGroups.map(fg => fg.groupId);
+    if (groupIds.length === 0) {
+        throw new AppError(httpStatus.FORBIDDEN, 'You are not enrolled in this forum');
+    }
 
-    await isGroupExist(isForumExist.groupId as string, userId)
+    const membership = await prisma.userGroup.findFirst({
+        where: {
+            userId,
+            groupId: { in: groupIds },
+        },
+    });
 
-
+    if (!membership) {
+        throw new AppError(httpStatus.FORBIDDEN, 'You are not enrolled in this forum');
+    }
 
     return { forum: isForumExist }
 };

@@ -134,6 +134,7 @@ const toggleAssignGroup = async (userId: string, groupId: string) => {
       },
     },
   });
+
   if (IsUserGroupExistWithTheUser) {
     const result = await prisma.userGroup.delete({
       where: {
@@ -155,6 +156,8 @@ const toggleAssignGroup = async (userId: string, groupId: string) => {
         24 * 60 * 60,
       );
     }
+    removeDataByPattern(`users-enrolled-*`);
+    removeDataByPattern(`users-multiple-group-*`);
     return result;
   }
   const result = await prisma.userGroup.create({
@@ -184,6 +187,8 @@ const toggleAssignGroup = async (userId: string, groupId: string) => {
       24 * 60 * 60,
     );
   }
+  removeDataByPattern(`users-enrolled-*`);
+  removeDataByPattern(`users-multiple-group-*`);
   return result;
 };
 

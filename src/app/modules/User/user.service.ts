@@ -18,11 +18,11 @@ import {
 } from '../../redis/GetOrSet';
 import { UsersRedis } from './user.redis';
 
-const getAllUsersFromDB = async (query: any) => {
+const getAllUsersFromDB = async (query: any, uniqueKey?: string) => {
   query.isDeleted = false;
   const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query);
   const result = await GetOrSetCollection({
-    key: `users-${JSON.stringify(query)}`,
+    key: `${uniqueKey || 'users'}-${JSON.stringify(query)}`,
     ttl: 24 * 60 * 60,
     query: usersQuery
       .search(['fullName', 'email'])
@@ -45,15 +45,10 @@ const getAllUsersFromDB = async (query: any) => {
 
         status: true,
         isUserVerified: true,
-        enrollCourses: {
-          where: {
-            course: {
-              isDeleted: false,
-            },
-          },
+        unenrollCourses: {
           select: {
             courseId: true,
-          },
+          }
         },
         userGroups: {
           where: {
@@ -120,7 +115,7 @@ const getMultipleGroupUsers = async (groupIds: string[], query: any) => {
   };
   query.role = 'USER';
   delete query.groupIds;
-  const result = await getAllUsersFromDB(query);
+  const result = await getAllUsersFromDB(query, 'users-multiple-group');
   return result;
 };
 
@@ -149,16 +144,7 @@ const getMyProfileFromDB = async (id: string) => {
         subject: true,
         introduction: true,
 
-        enrollCourses: {
-          where: {
-            course: {
-              isDeleted: false,
-            },
-          },
-          select: {
-            courseId: true,
-          },
-        },
+        unenrollCourses: true,
         userGroups: {
           where: {
             group: {
@@ -208,16 +194,7 @@ const getUserDetailsFromDB = async (id: string) => {
 
         status: true,
         isUserVerified: true,
-        enrollCourses: {
-          where: {
-            course: {
-              isDeleted: false,
-            },
-          },
-          select: {
-            courseId: true,
-          },
-        },
+        unenrollCourses: true,
         userGroups: {
           where: {
             group: {
