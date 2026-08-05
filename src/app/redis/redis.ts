@@ -1,5 +1,13 @@
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
+import config from '../../config';
 
-export const redis = createClient({
-  url: 'redis://127.0.0.1:6379',
-});
+export const isRedisEnabled = config.redis.enabled;
+
+export const redis: RedisClientType | null = isRedisEnabled
+  ? createClient({
+      url: `redis://${config.redis.host}:${config.redis.port}`,
+      ...(config.redis.password
+        ? { password: config.redis.password }
+        : {}),
+    })
+  : null;

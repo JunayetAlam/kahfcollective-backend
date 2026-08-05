@@ -10,6 +10,9 @@ import { PaymentRoutes } from '../modules/Payment/payment.route';
 import { PostRouters } from '../modules/Post/post.route';
 import { QuizAnswerRouters } from '../modules/Quiz_Answer/quiz_answer.route';
 import { UtilsRoutes } from '../modules/Utils/utils.route';
+import { SemesterRouters } from '../modules/Semester/semester.route';
+import { ChapterRouters } from '../modules/Chapter/chapter.route';
+import { AnalyticsRouters } from '../modules/Analytics/analytics.route';
 const router = express.Router();
 
 const moduleRoutes = [
@@ -40,6 +43,14 @@ const moduleRoutes = [
     route: CourseRouters,
   },
   {
+    path: '/semesters',
+    route: SemesterRouters,
+  },
+  {
+    path: '/chapters',
+    route: ChapterRouters,
+  },
+  {
     path: '/course-contents',
     route: CourseContentRouters,
   },
@@ -58,6 +69,10 @@ const moduleRoutes = [
   {
     path: '/utils',
     route: UtilsRoutes,
+  },
+  {
+    path: '/analytics',
+    route: AnalyticsRouters,
   },
 ];
 

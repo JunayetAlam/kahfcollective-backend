@@ -9,15 +9,17 @@ model Course {
     isDeleted    Boolean      @default(false)
     forAll       Boolean      @default(false)
 
-    forums          Forum[]
-    instructor      User             @relation(fields: [instructorId], references: [id])
-    completeCourses CompleteCourse[]
-    unenrollCourses UnenrollCourse[]
-    groupCourses    GroupCourse[]
+  forums          Forum[]
+  instructor      User             @relation(fields: [instructorId], references: [id])
+  completeCourses CompleteCourse[]
+  enrollCourses EnrollCourse[]
+  groupCourses    GroupCourse[]
+  contentProgress ContentProgress[]
+  studentStats    StudentCourseStats[]
 
-    chapters       Chapter[]
-    semesters      Semester[]
-    courseContents CourseContents[]
+  chapters       Chapter[]
+  semesters      Semester[]
+  courseContents CourseContents[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

@@ -49,9 +49,20 @@ const toggleAssignCourseToGroup = z.object({
     .strict(),
 });
 
+const bulkEnrollCourse = z.object({
+  body: z
+    .object({
+      courseId: z.string(),
+      assign: z.array(z.string()).optional().default([]),
+      unassign: z.array(z.string()).optional().default([]),
+    })
+    .strict(),
+});
+
 export const courseValidation = {
   createCourse,
   updateCourse,
   toggleStatus,
   toggleAssignCourseToGroup,
+  bulkEnrollCourse,
 };

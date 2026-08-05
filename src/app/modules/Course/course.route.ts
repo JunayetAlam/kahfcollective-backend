@@ -56,6 +56,12 @@ router.post(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   courseController.toggleEnrollCourse,
 );
+router.post(
+  '/enroll/bulk',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  validateRequest.body(courseValidation.bulkEnrollCourse),
+  courseController.bulkEnrollCourse,
+);
 router.get(
   '/enrolled-students/:courseId',
   auth('INSTRUCTOR', 'SUPERADMIN'),

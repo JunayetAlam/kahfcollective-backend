@@ -1,4 +1,4 @@
-import { redis } from './redis';
+import { isRedisEnabled, redis } from './redis';
 
 type ValueType = {
   key: string;
@@ -15,6 +15,10 @@ type CollectionType = {
 };
 
 export async function getOrSet({ key, ttl = 60, newData, query }: ValueType) {
+  if (!isRedisEnabled || !redis) {
+    return await query;
+  }
+
   const client = redis;
   if (newData) {
     const result = await query;
@@ -51,6 +55,10 @@ export async function set({
   ttl?: number;
   data: any;
 }) {
+  if (!isRedisEnabled || !redis) {
+    return;
+  }
+
   const client = redis;
   await client.set(key, JSON.stringify(data), {
     expiration: {
@@ -59,7 +67,12 @@ export async function set({
     },
   });
 }
+
 export async function get({ key }: { key: string }) {
+  if (!isRedisEnabled || !redis) {
+    return null;
+  }
+
   const client = redis;
   const result = await client.get(key);
   if (result) {
@@ -70,6 +83,13 @@ export async function get({ key }: { key: string }) {
 }
 
 export async function getMany(keys: string[]) {
+  if (!isRedisEnabled || !redis) {
+    return keys.map(key => ({
+      key,
+      data: undefined,
+    }));
+  }
+
   const client = redis;
   const result = await client.mGet(keys);
   const rawData = Array.isArray(result) ? result : [];
@@ -89,6 +109,10 @@ export const GetOrSetCollection = async ({
   query,
   singleDataKey,
 }: CollectionType) => {
+  if (!isRedisEnabled || !redis) {
+    return await query;
+  }
+
   const client = redis;
   if (newData) {
     return await setData({ query, key, ttl, singleDataKey });
@@ -131,7 +155,7 @@ const setData = async ({
   ttl: number;
   singleDataKey: string;
 }) => {
-  const client = redis;
+  const client = redis!;
   const result: { data: any[]; meta: any } = await query;
   const ids = result.data.map(item => item.id);
   await client.set(key, JSON.stringify({ ids, meta: result.meta }), {

@@ -2,7 +2,9 @@ model Semester {
     id   String @id @default(auto()) @map("_id") @db.ObjectId
     name String
 
-    courseId String @db.ObjectId
+    courseId  String  @db.ObjectId
+    index     Int
+    isDeleted Boolean @default(false)
 
     course Course @relation(fields: [courseId], references: [id])
 
@@ -19,8 +21,10 @@ model Chapter {
     id   String @id @default(auto()) @map("_id") @db.ObjectId
     name String
 
-    semesterId String @db.ObjectId
-    courseId   String @db.ObjectId
+    semesterId String  @db.ObjectId
+    courseId   String  @db.ObjectId
+    index      Int
+    isDeleted  Boolean @default(false)
 
     semester Semester @relation(fields: [semesterId], references: [id])
     course   Course   @relation(fields: [courseId], references: [id])
@@ -49,19 +53,20 @@ model CourseContents {
     isDeleted   Boolean               @default(false)
     index       Int
 
-    courseId   String @db.ObjectId
-    semesterId String @db.ObjectId
-    chapterId  String @db.ObjectId
+    courseId   String  @db.ObjectId
+    semesterId String? @db.ObjectId
+    chapterId  String? @db.ObjectId
 
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
-    courseQuestions Question?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  courseQuestions Question?
+  contentProgress ContentProgress[]
 
-    course   Course    @relation(fields: [courseId], references: [id])
-    semester Semester? @relation(fields: [semesterId], references: [id])
-    chapter  Chapter?  @relation(fields: [chapterId], references: [id])
+  course   Course    @relation(fields: [courseId], references: [id])
+  semester Semester? @relation(fields: [semesterId], references: [id])
+  chapter  Chapter?  @relation(fields: [chapterId], references: [id])
 
-    @@map("course_contents")
+  @@map("course_contents")
 }
 
 enum CourseContentTypeEnum {

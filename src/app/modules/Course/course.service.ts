@@ -14,6 +14,7 @@ import { get } from '../../redis/GetOrSet';
 import { deleteFromStorage, uploadToStorage } from '../../utils/uploadToStorage';
 import { AndMethodQuery, singleCourseGetOrQuery } from './course.utils';
 import { UserServices } from '../User/user.service';
+import { buildCourseTree, courseTreeInclude } from './course.tree';
 
 const createCourse = async (data: Course, thumbnail?: Express.Multer.File) => {
   await prisma.user.findUniqueOrThrow({
@@ -133,14 +134,7 @@ const getAllCourses = async ({
               status: 'PUBLISHED',
             },
           },
-          ...(!query.forAll && {
-            unenrollCourses: {
-              where: {
-                userId
-              }
-            }
-          })
-
+          enrollCourses: true,
         },
       },
 
@@ -194,21 +188,7 @@ const getCourseById = async ({
           profile: true,
         },
       },
-      courseContents: {
-        where: { isDeleted: false },
-        select: {
-          id: true,
-          type: true,
-          status: true,
-          index: true,
-          createdAt: true,
-          title: true,
-          description: true,
-          courseQuestions: true,
-        },
-
-        orderBy: { index: 'asc' },
-      },
+      ...courseTreeInclude,
       ...(role === 'USER' && {
         completeCourses: {
           where: {
@@ -231,8 +211,11 @@ const getCourseById = async ({
     content => content.type === CourseContentTypeEnum.QUIZ,
   ).length;
 
+  const items = buildCourseTree(course);
+
   return {
     ...course,
+    items,
     lessons: lessonsCount,
     tests: testsCount,
   };
@@ -377,121 +360,188 @@ const toggleCompleteCourse = async (userId: string, courseId: string) => {
   });
 };
 
-const toggleEnrollCourse = async (userId: string, courseId: string) => {
-  const user = await prisma.user.findUniqueOrThrow({
+const getCourseGroupIds = async (courseId: string) => {
+  const course = await prisma.course.findUniqueOrThrow({
+    where: { id: courseId },
+    select: {
+      groupCourses: {
+        where: { group: { isDeleted: false } },
+        select: { group: { select: { id: true } } },
+      },
+    },
+  });
+  return course.groupCourses.map(item => item.group.id);
+};
+
+const assertUserInCourseGroup = async (userId: string, courseId: string) => {
+  const user = await prisma.user.findFirst({
     where: {
       id: userId,
       isDeleted: false,
+      role: UserRoleEnum.USER,
     },
     select: {
       id: true,
-      userGroups: {
-        select: {
-          groupId: true,
-        },
-      },
+      userGroups: { select: { groupId: true } },
     },
   });
-  const allGroupId = user.userGroups.map(item => item.groupId);
-  const course = await prisma.course.findUniqueOrThrow({
-    where: {
-      id: courseId,
-    },
-    select: {
-      groupCourses: {
-        where: {
-          group: {
-            isDeleted: false,
-          },
-        },
-        select: {
-          group: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
-  });
-  const groups = course.groupCourses.map(item => item.group.id);
-  if (!allGroupId.find(item => groups.includes(item))) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `User is not under the Course Group`,
-    );
+
+  if (!user) {
+    return { ok: false as const, reason: 'User not found' };
   }
 
-  const isAlreadyUnenrolled = await prisma.unenrollCourse.findUnique({
+  const courseGroupIds = await getCourseGroupIds(courseId);
+  const inGroup = user.userGroups.some(ug =>
+    courseGroupIds.includes(ug.groupId),
+  );
+  if (!inGroup) {
+    return {
+      ok: false as const,
+      reason: 'User is not assigned to a class for this course',
+    };
+  }
+
+  return { ok: true as const, user };
+};
+
+const syncUserEnrollCache = async (
+  userId: string,
+  courseId: string,
+  enrolled: boolean,
+) => {
+  const userData = await get({ key: `user-${userId}-details` });
+  if (!userData) return;
+
+  const current = Array.isArray(userData.enrollCourses)
+    ? userData.enrollCourses
+    : [];
+
+  await updateData(
+    `user-${userId}-details`,
+    {
+      ...userData,
+      enrollCourses: enrolled
+        ? [...current.filter((item: any) => item.courseId !== courseId), { courseId }]
+        : current.filter((item: any) => item.courseId !== courseId),
+    },
+    24 * 60 * 60,
+  );
+};
+
+const toggleEnrollCourse = async (userId: string, courseId: string) => {
+  const check = await assertUserInCourseGroup(userId, courseId);
+  if (!check.ok) {
+    throw new AppError(httpStatus.BAD_REQUEST, check.reason);
+  }
+
+  const existing = await prisma.enrollCourse.findUnique({
     where: {
-      userId_courseId: {
-        courseId,
-        userId,
-      },
+      userId_courseId: { courseId, userId },
     },
   });
-  if (isAlreadyUnenrolled) {
-    const result = await prisma.unenrollCourse.delete({
-      where: {
-        userId_courseId: {
-          courseId,
-          userId,
-        },
-      },
-    });
-    const userData = await get({ key: `user-${userId}-details` });
-    if (userData) {
-      await updateData(
-        `user-${userId}-details`,
-        {
-          ...userData,
-          unenrollCourses: [
-            ...userData.unenrollCourses.filter(
-              (item: any) => item.courseId !== courseId,
-            ),
-          ],
-        },
-        24 * 60 * 60,
-      );
-    }
 
-    removeDataByPattern(`users-enrolled-*`)
+  if (existing) {
+    const result = await prisma.enrollCourse.delete({
+      where: { userId_courseId: { courseId, userId } },
+    });
+    await syncUserEnrollCache(userId, courseId, false);
+    removeDataByPattern(`users-enrolled-*`);
     removeDataByPattern(`users-multiple-group-*`);
+    removeDataByPattern(`users-*`);
     return result;
   }
 
-  const result = await prisma.unenrollCourse.create({
-    data: {
-      userId,
-      courseId,
-    },
+  const result = await prisma.enrollCourse.create({
+    data: { userId, courseId },
+  });
+  await syncUserEnrollCache(userId, courseId, true);
+  removeDataByPattern(`users-*`);
+  removeDataByPattern(`users-multiple-group-*`);
+  removeDataByPattern(`users-enrolled-*`);
+  return result;
+};
+
+const bulkEnrollCourse = async ({
+  courseId,
+  assign = [],
+  unassign = [],
+}: {
+  courseId: string;
+  assign?: string[];
+  unassign?: string[];
+}) => {
+  await prisma.course.findUniqueOrThrow({
+    where: { id: courseId, isDeleted: false },
+    select: { id: true },
   });
 
-  const userData = await get({ key: `user-${userId}-details` });
-  if (userData) {
-    await updateData(
-      `user-${userId}-details`,
-      {
-        ...userData,
-        unenrollCourses: [...userData.unenrollCourses, { courseId }],
-      },
-      24 * 60 * 60,
-    );
+  const assignIds = [...new Set(assign.filter(Boolean))];
+  const unassignIds = [...new Set(unassign.filter(Boolean))];
+
+  let assigned = 0;
+  let unassigned = 0;
+  const errorDetails: { userId: string; reason: string }[] = [];
+
+  for (const userId of assignIds) {
+    const check = await assertUserInCourseGroup(userId, courseId);
+    if (!check.ok) {
+      errorDetails.push({ userId, reason: check.reason });
+      continue;
+    }
+
+    const existing = await prisma.enrollCourse.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (existing) {
+      continue;
+    }
+
+    await prisma.enrollCourse.create({ data: { userId, courseId } });
+    await syncUserEnrollCache(userId, courseId, true);
+    assigned += 1;
   }
-  removeDataByPattern(`users-*`)
+
+  for (const userId of unassignIds) {
+    const check = await assertUserInCourseGroup(userId, courseId);
+    if (!check.ok) {
+      errorDetails.push({ userId, reason: check.reason });
+      continue;
+    }
+
+    const existing = await prisma.enrollCourse.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!existing) {
+      continue;
+    }
+
+    await prisma.enrollCourse.delete({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    await syncUserEnrollCache(userId, courseId, false);
+    unassigned += 1;
+  }
+
+  removeDataByPattern(`users-*`);
   removeDataByPattern(`users-multiple-group-*`);
-  return result;
+  removeDataByPattern(`users-enrolled-*`);
+
+  return {
+    assigned,
+    unassigned,
+    errors: errorDetails.length,
+    errorDetails,
+  };
 };
 
 const enrolledUserOnCourse = async (courseId: string, query: Record<string, any>) => {
   query.AND = [
     {
-      unenrollCourses: {
-        none: {
-          courseId
-        }
-      }
+      enrollCourses: {
+        some: {
+          courseId,
+        },
+      },
     },
     {
       userGroups: {
@@ -502,16 +552,16 @@ const enrolledUserOnCourse = async (courseId: string, query: Record<string, any>
               some: {
                 courseId,
                 course: {
-                  isDeleted: false
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-  const result = UserServices.getAllUsersFromDB(query, 'users-enrolled')
+                  isDeleted: false,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+  const result = UserServices.getAllUsersFromDB(query, 'users-enrolled');
   return result;
 };
 
@@ -577,7 +627,8 @@ export const CourseService = {
   isCourseExist,
   toggleCompleteCourse,
   toggleEnrollCourse,
+  bulkEnrollCourse,
   enrolledUserOnCourse,
   toggleAssignCourseToGroup,
-  toggleAllowToAll
+  toggleAllowToAll,
 };

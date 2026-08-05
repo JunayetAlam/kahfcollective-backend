@@ -1,4 +1,4 @@
-model UnenrollCourse {
+model EnrollCourse {
     id String @id @default(auto()) @map("_id") @db.ObjectId
 
     userId   String @db.ObjectId
@@ -11,5 +11,5 @@ model UnenrollCourse {
     updatedAt DateTime @updatedAt
 
     @@unique([userId, courseId])
-    @@map("unenroll_courses")
+    @@map("enroll_courses")
 }

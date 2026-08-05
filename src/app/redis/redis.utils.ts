@@ -1,11 +1,19 @@
-import { redis } from './redis';
+import { isRedisEnabled, redis } from './redis';
 
 export const removeData = async (key: string) => {
+  if (!isRedisEnabled || !redis) {
+    return;
+  }
+
   const client = redis;
   await client.del(key);
 };
 
 export const removeDataByPattern = async (pattern: string) => {
+  if (!isRedisEnabled || !redis) {
+    return;
+  }
+
   const client = redis;
   let cursor = '0';
 
@@ -28,6 +36,10 @@ export const updateData = async (
   values: Record<string, any>,
   ttl = 60,
 ) => {
+  if (!isRedisEnabled || !redis) {
+    return 0;
+  }
+
   const client = redis;
   let cursor = '0';
   let updated = 0;
@@ -56,6 +68,10 @@ export const updateData = async (
 };
 
 export const invalidateRedis = async () => {
+  if (!isRedisEnabled || !redis) {
+    return;
+  }
+
   const client = redis;
   await client.flushDb();
 };

@@ -45,7 +45,7 @@ const getAllUsersFromDB = async (query: any, uniqueKey?: string) => {
 
         status: true,
         isUserVerified: true,
-        unenrollCourses: {
+        enrollCourses: {
           select: {
             courseId: true,
           }
@@ -144,7 +144,7 @@ const getMyProfileFromDB = async (id: string) => {
         subject: true,
         introduction: true,
 
-        unenrollCourses: true,
+        enrollCourses: true,
         userGroups: {
           where: {
             group: {
@@ -194,7 +194,7 @@ const getUserDetailsFromDB = async (id: string) => {
 
         status: true,
         isUserVerified: true,
-        unenrollCourses: true,
+        enrollCourses: true,
         userGroups: {
           where: {
             group: {

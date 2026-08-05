@@ -164,6 +164,9 @@ const LockQuiz = async (userId: string, contentId: string) => {
         }
     })
 
+    const { AnalyticsService } = await import('../Analytics/analytics.service');
+    await AnalyticsService.onQuizLocked(userId, contentId);
+
     return lockAllAnswer
 }
 
@@ -286,7 +289,7 @@ const getSingleQuizWithUserAnswer = async (userId: string, quizId: string) => {
 };
 
 const markQuizAnswer = async (id: string, isRight: boolean) => {
-    return await prisma.quizAnswers.update({
+    const result = await prisma.quizAnswers.update({
         where: {
             id,
             isLocked: true
@@ -296,6 +299,11 @@ const markQuizAnswer = async (id: string, isRight: boolean) => {
             isMarked: true
         }
     })
+
+    const { AnalyticsService } = await import('../Analytics/analytics.service');
+    await AnalyticsService.onQuizAnswerMarked(id);
+
+    return result
 }
 
 const getAllQuizAnswersGrouped = async (page: number = 1, limit: number = 10) => {

@@ -18,6 +18,20 @@ const createFileContent = catchAsync(async (req, res) => {
   });
 });
 
+const createTextOrLinkContent = catchAsync(async (req, res) => {
+  const result = await CoursecontentService.createTextOrLinkContent(
+    req.body,
+    req.user.id,
+    req.user.role,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    message: 'Content created successfully',
+    data: result,
+  });
+});
+
 const updateFileContent = catchAsync(async (req, res) => {
   const contentId = req.params.id;
   const video = req.file;
@@ -200,6 +214,14 @@ const getSingleContentForUser = catchAsync(async (req, res) => {
     message: 'Content retrieved successfully',
     data: result,
   });
+
+  // After response: auto-mark non-quiz content as completed for students
+  const { AnalyticsService } = await import('../Analytics/analytics.service');
+  void AnalyticsService.autoMarkOnContentView(
+    req.user?.id,
+    contentId,
+    req.user?.role,
+  );
 });
 
 const getAllQuizForSpecificCourseContentForUser = catchAsync(
@@ -267,6 +289,22 @@ const changeContentIndex = catchAsync(async (req, res) => {
   });
 });
 
+const moveContent = catchAsync(async (req, res) => {
+  const { contentId } = req.params;
+  const result = await CoursecontentService.moveContent(
+    contentId,
+    req.body,
+    req.user.id,
+    req.user.role,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Content moved successfully',
+    data: result,
+  });
+});
+
 const changeQuizIndex = catchAsync(async (req, res) => {
   const { quizId } = req.params;
   const { newIndex } = req.body;
@@ -301,6 +339,7 @@ const updateAnswerStatus = catchAsync(async (req, res) => {
 
 export const CourseContentController = {
   createFileContent,
+  createTextOrLinkContent,
   updateFileContent,
   createQuizContent,
   updateContent,
@@ -320,6 +359,7 @@ export const CourseContentController = {
   // Other methods
   toggleDeleteQuiz,
   changeContentIndex,
+  moveContent,
   changeQuizIndex,
   updateAnswerStatus,
 };

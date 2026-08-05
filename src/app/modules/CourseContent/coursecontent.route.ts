@@ -8,7 +8,7 @@ import { CoursecontentValidation } from './coursecontent.validation';
 
 const router = express.Router();
 
-// Create video content
+// Create video/pdf file content
 router.post(
   '',
   upload.single('file'),
@@ -16,6 +16,14 @@ router.post(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(CoursecontentValidation.createVideoContent),
   CourseContentController.createFileContent,
+);
+
+// Create TEXT / VIDEO_LINK / MEETING_LINK content
+router.post(
+  '/text-or-link',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  validateRequest.body(CoursecontentValidation.createTextOrLinkContent),
+  CourseContentController.createTextOrLinkContent,
 );
 
 
@@ -74,6 +82,14 @@ router.patch(
   auth('INSTRUCTOR', 'SUPERADMIN'),
   validateRequest.body(CoursecontentValidation.changeIndex),
   CourseContentController.changeContentIndex,
+);
+
+// Move content across scopes
+router.patch(
+  '/:contentId/move',
+  auth('INSTRUCTOR', 'SUPERADMIN'),
+  validateRequest.body(CoursecontentValidation.moveContent),
+  CourseContentController.moveContent,
 );
 
 // Get all contents for a specific course (for owners/superadmins)

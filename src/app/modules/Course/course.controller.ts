@@ -120,6 +120,22 @@ const toggleEnrollCourse = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const bulkEnrollCourse = catchAsync(async (req, res) => {
+  const { courseId, assign, unassign } = req.body;
+  const result = await CourseService.bulkEnrollCourse({
+    courseId,
+    assign,
+    unassign,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: 'Bulk enrollment updated successfully',
+    data: result,
+  });
+});
+
 const enrolledUserOnCourse = catchAsync(async (req, res) => {
   const { courseId } = req.params;
   const result = await CourseService.enrolledUserOnCourse(courseId, req.query || {});
@@ -166,6 +182,7 @@ export const courseController = {
   isCourseExist,
   toggleCompleteCourse,
   toggleEnrollCourse,
+  bulkEnrollCourse,
   enrolledUserOnCourse,
   toggleAssignCourseToGroup,
   toggleAllowToAll,

@@ -36,4 +36,10 @@ export default {
     api_secret: process.env.CLOUDINARY_API_SECRET,
     project_name: process.env.CLOUDINARY_PROJECT_NAME,
   },
+  redis: {
+    enabled: process.env.REDIS_ENABLED === 'true',
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || '6379',
+    password: process.env.REDIS_PASSWORD,
+  },
 };

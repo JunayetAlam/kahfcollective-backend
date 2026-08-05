@@ -1,0 +1,52 @@
+model ContentProgress {
+  id              String                @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String                @db.ObjectId
+  courseContentId String                @db.ObjectId
+  courseId        String                @db.ObjectId
+  semesterId      String?               @db.ObjectId
+  chapterId       String?               @db.ObjectId
+  status          ContentProgressStatus @default(COMPLETED)
+  completedAt     DateTime              @default(now())
+
+  user          User           @relation(fields: [userId], references: [id])
+  courseContent CourseContents @relation(fields: [courseContentId], references: [id])
+  course        Course         @relation(fields: [courseId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseContentId])
+  @@index([userId, courseId])
+  @@index([courseId, chapterId])
+  @@map("content_progress")
+}
+
+model StudentCourseStats {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String    @db.ObjectId
+  courseId          String    @db.ObjectId
+  quizAvgPercent    Float     @default(0)
+  quizzesAttempted  Int       @default(0)
+  quizzesTotal      Int       @default(0)
+  completionPercent Float     @default(0)
+  contentsCompleted Int       @default(0)
+  contentsTotal     Int       @default(0)
+  rank              Int?
+  lastActivityAt    DateTime?
+  computedAt        DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([courseId, quizAvgPercent])
+  @@map("student_course_stats")
+}
+
+enum ContentProgressStatus {
+  STARTED
+  COMPLETED
+}

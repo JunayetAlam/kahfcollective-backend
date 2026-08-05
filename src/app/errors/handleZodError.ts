@@ -5,12 +5,16 @@ const handleZodError = (err: ZodError): TGenericErrorResponse => {
   let message = "";
   const errorDetails: TErrorDetails = {
     issues: err.issues.map((issue: ZodIssue) => {
+      const pathKey = issue.path[issue.path.length - 1];
+      const path: string | number =
+        typeof pathKey === "symbol" ? pathKey.toString() : (pathKey ?? "");
+
       message =
         message + issue.message == "Expected number, received string"
-          ? issue?.path[issue.path.length - 1] + " " + issue.message
+          ? path + " " + issue.message
           : message + ". " + issue.message;
       return {
-        path: issue?.path[issue.path.length - 1],
+        path,
         message: issue.message,
       };
     }),
